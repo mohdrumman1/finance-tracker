@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Account {
+  id           String        @id @default(cuid())
+  name         String
+  institution  String
+  accountType  String        @default("transaction") // transaction | savings | credit
+  currency     String        @default("AUD")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  importBatches ImportBatch[]
+}
+
+model Transaction {
+  id                    String    @id @default(cuid())
+  accountId             String
+  account               Account   @relation(fields: [accountId], references: [id])
+  importBatchId         String?
+  importBatch           ImportBatch? @relation(fields: [importBatchId], references: [id])
+  sourceType            String    @default("csv") // csv | pdf | manual | pending_unverified
+  transactionDate       DateTime
+  postedDate            DateTime?
+  descriptionRaw        String
+  descriptionNormalized String?
+  merchantName          String?
+  amount                Float
+  currency              String    @default("AUD")
+  direction             String    // income | expense | transfer
+  categoryId            String?
+  category              Category? @relation(fields: [categoryId], references: [id])
+  subcategoryId         String?
+  subcategory           Subcategory? @relation(fields: [subcategoryId], references: [id])
+  isRecurring           Boolean   @default(false)
+  isTransfer            Boolean   @default(false)
+  isExcludedFromBudget  Boolean   @default(false)
+  reviewStatus          String    @default("pending") // pending | needs_review | reviewed | auto_categorized
+  confidenceScore       Float     @default(0)
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  color        String        @default("#6366f1")
+  icon         String?
+  isSystem     Boolean       @default(false)
+  sortOrder    Int           @default(0)
+  transactions Transaction[]
+  subcategories Subcategory[]
+  budgets      Budget[]
+  merchantRules MerchantRule[]
+  createdAt    DateTime      @default(now())
+}
+
+model Subcategory {
+  id           String        @id @default(cuid())
+  name         String
+  categoryId   String
+  category     Category      @relation(fields: [categoryId], references: [id])
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+}
+
+model MerchantRule {
+  id                   String   @id @default(cuid())
+  pattern              String   @unique
+  patternType          String   @default("exact") // exact | regex | keyword
+  merchantNameNormalized String?
+  categoryId           String
+  category             Category @relation(fields: [categoryId], references: [id])
+  subcategoryId        String?
+  direction            String?  // income | expense | transfer — null means match any
+  isUserDefined        Boolean  @default(false)
+  priority             Int      @default(0) // higher = checked first
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model ImportBatch {
+  id           String        @id @default(cuid())
+  accountId    String
+  account      Account       @relation(fields: [accountId], references: [id])
+  filename     String
+  fileType     String        // csv | pdf
+  bankProfile  String        // commbank | amex | generic
+  rowCount     Int
+  importedAt   DateTime      @default(now())
+  transactions Transaction[]
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  period      String   @default("monthly") // monthly | weekly
+  amount      Float
+  year        Int
+  month       Int      // 1-12; for weekly budgets, use month=0
+  week        Int?     // ISO week number for weekly budgets
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([categoryId, period, year, month])
+}
+
+model Goal {
+  id                      String   @id @default(cuid())
+  name                    String
+  goalType                String   // emergency_fund | debt_payoff | house_deposit | holiday | general | spending_reduction
+  targetAmount            Float
+  targetDate              DateTime?
+  currentSavedAmount      Float    @default(0)
+  monthlyContributionTarget Float?
+  priority                Int      @default(1)
+  linkedCategoryIds       String?  // JSON array of category IDs to reduce
+  notes                   String?
+  status                  String   @default("active") // active | completed | paused
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model InsightSnapshot {
+  id          String   @id @default(cuid())
+  period      String   // e.g. "2024-11"
+  insights    String   // JSON array of insight objects
+  generatedAt DateTime @default(now())
+}
+
+model ForecastSnapshot {
+  id          String   @id @default(cuid())
+  period      String
+  forecast    String   // JSON blob
+  generatedAt DateTime @default(now())
+}
+
+model AppSetting {
+  key       String @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
