@@ -9,9 +9,19 @@ export interface ParsedRow {
 }
 
 export class CsvParser {
-  parse(content: string): ParsedRow[] {
+  parse(content: string, hasHeader = true): ParsedRow[] {
     if (!content || content.trim().length === 0) {
       return []
+    }
+
+    if (!hasHeader) {
+      // Headerless: parse as raw arrays, key each column by its index ("0", "1", ...)
+      const raw = this.parseRaw(content)
+      return raw.map((cols) => {
+        const row: ParsedRow = { date: '', description: '', amount: '' }
+        cols.forEach((val, i) => { row[String(i)] = val })
+        return row
+      })
     }
 
     const result = Papa.parse<Record<string, string>>(content.trim(), {

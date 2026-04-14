@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useCallback } from 'react'
-import { Upload, FileText, CheckCircle, AlertTriangle, ChevronRight } from 'lucide-react'
+import { Upload, FileText, CheckCircle, AlertTriangle, ChevronRight, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +28,7 @@ interface PreviewTransaction {
   confidenceScore: number
   reviewStatus?: string
   isDuplicate?: boolean
+  _source?: string // filename, added client-side
 }
 
 interface ImportResult {
@@ -36,24 +37,26 @@ interface ImportResult {
   errors: number
 }
 
+interface FileEntry {
+  id: string
+  file: File
+  profileId: string
+}
+
 const BANK_PROFILES = [
   { id: 'commbank', label: 'Commonwealth Bank (CBA)' },
   { id: 'amex', label: 'American Express' },
   { id: 'generic', label: 'Generic CSV' },
 ]
 
-const DEFAULT_ACCOUNT_ID = 'default'
-
 type Step = 1 | 2 | 3
+
+let nextId = 1
 
 export default function ImportsPage() {
   const [step, setStep] = useState<Step>(1)
   const [dragging, setDragging] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
-  const [profileId, setProfileId] = useState('commbank')
-  const [accountId] = useState(DEFAULT_ACCOUNT_ID)
-  const [accounts, setAccounts] = useState<Array<{ id: string; name: string }>>([])
-  const [selectedAccount, setSelectedAccount] = useState('')
+  const [fileEntries, setFileEntries] = useState<FileEntry[]>([])
   const [previewing, setPreviewing] = useState(false)
   const [preview, setPreview] = useState<PreviewTransaction[]>([])
   const [importing, setImporting] = useState(false)
@@ -61,54 +64,60 @@ export default function ImportsPage() {
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Fetch accounts on mount
-  React.useEffect(() => {
-    fetch('/api/accounts')
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setAccounts(data)
-          if (data.length > 0) setSelectedAccount(data[0].id)
-        }
-      })
-      .catch(() => {})
-  }, [])
+  function addFiles(newFiles: FileList | File[]) {
+    const arr = Array.from(newFiles).filter((f) => f.name.endsWith('.csv'))
+    if (arr.length === 0) {
+      setError('Please select .csv files only')
+      return
+    }
+    setError(null)
+    setFileEntries((prev) => [
+      ...prev,
+      ...arr.map((f) => ({ id: String(nextId++), file: f, profileId: 'commbank' })),
+    ])
+  }
 
   const handleFileDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setDragging(false)
-    const dropped = e.dataTransfer.files[0]
-    if (dropped && dropped.name.endsWith('.csv')) {
-      setFile(dropped)
-      setError(null)
-    } else {
-      setError('Please drop a .csv file')
-    }
-  }, [])
+    addFiles(e.dataTransfer.files)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (f) {
-      setFile(f)
-      setError(null)
-    }
+    if (e.target.files) addFiles(e.target.files)
+    e.target.value = ''
+  }
+
+  function removeFile(id: string) {
+    setFileEntries((prev) => prev.filter((e) => e.id !== id))
+  }
+
+  function setProfile(id: string, profileId: string) {
+    setFileEntries((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, profileId } : e))
+    )
+  }
+
+  async function previewOne(entry: FileEntry): Promise<PreviewTransaction[]> {
+    const formData = new FormData()
+    formData.append('file', entry.file)
+    formData.append('profileId', entry.profileId)
+    formData.append('accountId', 'default')
+    formData.append('mode', 'preview')
+    const res = await fetch('/api/import', { method: 'POST', body: formData })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error ?? `Preview failed for ${entry.file.name}`)
+    const txns: PreviewTransaction[] = data.transactions ?? []
+    return txns.map((t) => ({ ...t, _source: entry.file.name }))
   }
 
   async function handlePreview() {
-    if (!file) return
+    if (fileEntries.length === 0) return
     setPreviewing(true)
     setError(null)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('profileId', profileId)
-      formData.append('accountId', selectedAccount || accountId)
-      formData.append('mode', 'preview')
-
-      const res = await fetch('/api/import', { method: 'POST', body: formData })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Preview failed')
-      setPreview(data.transactions ?? [])
+      const results = await Promise.all(fileEntries.map(previewOne))
+      setPreview(results.flat())
       setStep(2)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Preview failed')
@@ -117,24 +126,31 @@ export default function ImportsPage() {
     }
   }
 
+  async function importOne(entry: FileEntry): Promise<{ imported: number; duplicatesSkipped: number }> {
+    const formData = new FormData()
+    formData.append('file', entry.file)
+    formData.append('profileId', entry.profileId)
+    formData.append('accountId', 'default')
+    formData.append('mode', 'confirm')
+    const res = await fetch('/api/import', { method: 'POST', body: formData })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error ?? `Import failed for ${entry.file.name}`)
+    return {
+      imported: data.transactions?.length ?? data.totalRows ?? 0,
+      duplicatesSkipped: data.duplicatesSkipped ?? 0,
+    }
+  }
+
   async function handleImport() {
-    if (!file) return
+    if (fileEntries.length === 0) return
     setImporting(true)
     setError(null)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('profileId', profileId)
-      formData.append('accountId', selectedAccount || accountId)
-      formData.append('mode', 'confirm')
-
-      const res = await fetch('/api/import', { method: 'POST', body: formData })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Import failed')
+      const results = await Promise.all(fileEntries.map(importOne))
       setResult({
-        imported: data.imported ?? 0,
-        duplicates: data.duplicates ?? 0,
-        errors: data.errors ?? 0,
+        imported: results.reduce((s, r) => s + r.imported, 0),
+        duplicates: results.reduce((s, r) => s + r.duplicatesSkipped, 0),
+        errors: 0,
       })
       setStep(3)
     } catch (err) {
@@ -146,7 +162,7 @@ export default function ImportsPage() {
 
   function reset() {
     setStep(1)
-    setFile(null)
+    setFileEntries([])
     setPreview([])
     setResult(null)
     setError(null)
@@ -154,6 +170,7 @@ export default function ImportsPage() {
 
   const duplicateCount = preview.filter((t) => t.isDuplicate).length
   const reviewCount = preview.filter((t) => t.reviewStatus === 'needs_review').length
+  const multiSource = new Set(preview.map((t) => t._source)).size > 1
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -195,16 +212,14 @@ export default function ImportsPage() {
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Upload CSV File</CardTitle>
+            <CardTitle>Upload CSV Files</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             {/* Drop zone */}
             <div
-              className={`border-2 border-dashed rounded-lg p-10 text-center transition-colors cursor-pointer ${
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
                 dragging
                   ? 'border-indigo-500 bg-indigo-50'
-                  : file
-                  ? 'border-green-400 bg-green-50'
                   : 'border-gray-300 hover:border-gray-400'
               }`}
               onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
@@ -216,75 +231,62 @@ export default function ImportsPage() {
                 ref={fileInputRef}
                 type="file"
                 accept=".csv"
+                multiple
                 className="hidden"
                 onChange={handleFileChange}
               />
-              {file ? (
-                <div className="flex flex-col items-center gap-2">
-                  <FileText className="w-10 h-10 text-green-500" />
-                  <p className="font-medium text-gray-800">{file.name}</p>
-                  <p className="text-sm text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <Upload className="w-10 h-10 text-gray-400" />
-                  <p className="font-medium text-gray-700">Drop a CSV file here</p>
-                  <p className="text-sm text-gray-400">or click to browse</p>
-                </div>
-              )}
-            </div>
-
-            {/* Config */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-700">Bank Profile</label>
-                <Select value={profileId} onValueChange={setProfileId}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BANK_PROFILES.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-700">Account</label>
-                <Select
-                  value={selectedAccount || DEFAULT_ACCOUNT_ID}
-                  onValueChange={setSelectedAccount}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.length > 0 ? (
-                      accounts.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value={DEFAULT_ACCOUNT_ID}>Default Account</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="w-10 h-10 text-gray-400" />
+                <p className="font-medium text-gray-700">Drop CSV files here</p>
+                <p className="text-sm text-gray-400">or click to browse — multiple files supported</p>
               </div>
             </div>
+
+            {/* File list */}
+            {fileEntries.length > 0 && (
+              <div className="space-y-2">
+                {fileEntries.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                  >
+                    <FileText className="w-5 h-5 text-indigo-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{entry.file.name}</p>
+                      <p className="text-xs text-gray-400">{(entry.file.size / 1024).toFixed(1)} KB</p>
+                    </div>
+                    <Select value={entry.profileId} onValueChange={(v) => setProfile(entry.id, v)}>
+                      <SelectTrigger className="w-48 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BANK_PROFILES.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeFile(entry.id) }}
+                      className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex justify-end">
-              <Button onClick={handlePreview} disabled={!file || previewing}>
+              <Button onClick={handlePreview} disabled={fileEntries.length === 0 || previewing}>
                 {previewing ? (
                   <span className="flex items-center gap-2">
                     <LoadingSpinner size="sm" />
                     Parsing...
                   </span>
                 ) : (
-                  'Preview Import'
+                  `Preview Import${fileEntries.length > 1 ? ` (${fileEntries.length} files)` : ''}`
                 )}
               </Button>
             </div>
@@ -319,6 +321,9 @@ export default function ImportsPage() {
                     <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Category</th>
                     <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Confidence</th>
                     <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+                    {multiSource && (
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Source</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -369,6 +374,11 @@ export default function ImportsPage() {
                             <Badge variant="success">Ready</Badge>
                           )}
                         </td>
+                        {multiSource && (
+                          <td className="px-4 py-2.5 text-xs text-gray-400 max-w-[120px] truncate">
+                            {t._source}
+                          </td>
+                        )}
                       </tr>
                     )
                   })}
@@ -379,7 +389,7 @@ export default function ImportsPage() {
               <Button variant="outline" onClick={reset}>
                 Back
               </Button>
-              <Button onClick={handleImport} disabled={importing || preview.length === 0}>
+              <Button onClick={handleImport} disabled={importing || preview.filter((t) => !t.isDuplicate).length === 0}>
                 {importing ? (
                   <span className="flex items-center gap-2">
                     <LoadingSpinner size="sm" />

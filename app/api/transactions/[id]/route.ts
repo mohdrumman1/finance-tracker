@@ -17,6 +17,7 @@ export async function PATCH(
       merchantName,
       notes,
       reviewStatus,
+      direction,
       applyToAll,
     } = body
 
@@ -25,13 +26,14 @@ export async function PATCH(
       return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
     }
 
-    // If category changed and we have a merchant name, save the rule
-    if (categoryId && categoryId !== existing.categoryId && merchantName) {
+    // Save merchant rule whenever we have a category + merchant
+    let appliedCount = 0
+    if (categoryId && merchantName) {
       await merchantLearner.saveUserRule(merchantName, categoryId, subcategoryId)
 
-      // Optionally apply retroactively
+      // Apply to all matching unreviewed transactions
       if (applyToAll) {
-        await merchantLearner.applyRuleRetroactively(merchantName, categoryId)
+        appliedCount = await merchantLearner.applyRuleRetroactively(merchantName, categoryId, subcategoryId)
       }
     }
 
@@ -43,12 +45,13 @@ export async function PATCH(
         ...(merchantName !== undefined && { merchantName }),
         ...(notes !== undefined && { notes }),
         ...(reviewStatus !== undefined && { reviewStatus }),
+        ...(direction !== undefined && { direction }),
         updatedAt: new Date(),
       },
       include: { category: true, subcategory: true },
     })
 
-    return NextResponse.json(updated)
+    return NextResponse.json({ ...updated, appliedCount })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update transaction' }, { status: 500 })
   }

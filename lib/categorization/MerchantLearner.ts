@@ -28,33 +28,38 @@ export class MerchantLearner {
     })
   }
 
-  async applyRuleRetroactively(merchantName: string, categoryId: string): Promise<number> {
+  async applyRuleRetroactively(
+    merchantName: string,
+    categoryId: string,
+    subcategoryId?: string
+  ): Promise<number> {
     const pattern = merchantName.toUpperCase().trim()
 
-    const result = await prisma.transaction.updateMany({
-      where: {
-        OR: [
-          {
-            descriptionNormalized: {
-              contains: pattern,
-            },
-          },
-          {
-            merchantName: {
-              contains: pattern,
-            },
-          },
-        ],
-        reviewStatus: { not: 'reviewed' },
-      },
+    // Fetch candidates — separate queries avoid OR + NOT driver quirks with better-sqlite3
+    const byMerchant = await prisma.transaction.findMany({
+      where: { merchantName: pattern, reviewStatus: 'needs_review' },
+      select: { id: true },
+    })
+
+    const byDesc = await prisma.transaction.findMany({
+      where: { descriptionNormalized: { contains: pattern }, reviewStatus: 'needs_review' },
+      select: { id: true },
+    })
+
+    const ids = [...new Set([...byMerchant, ...byDesc].map((t) => t.id))]
+    if (ids.length === 0) return 0
+
+    await prisma.transaction.updateMany({
+      where: { id: { in: ids } },
       data: {
         categoryId,
+        subcategoryId: subcategoryId ?? null,
         reviewStatus: 'auto_categorized',
         confidenceScore: 1.0,
         updatedAt: new Date(),
       },
     })
 
-    return result.count
+    return ids.length
   }
 }

@@ -30,7 +30,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [reviewCount, setReviewCount] = useState<number>(0)
 
-  useEffect(() => {
+  const refreshReviewCount = React.useCallback(() => {
     fetch('/api/transactions?reviewStatus=needs_review&limit=1')
       .then((r) => r.json())
       .then((data) => {
@@ -38,6 +38,27 @@ export function Sidebar() {
       })
       .catch(() => {})
   }, [])
+
+  // Re-fetch when navigating between pages
+  useEffect(() => {
+    refreshReviewCount()
+  }, [pathname, refreshReviewCount])
+
+  // Re-fetch when the user returns to this tab
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshReviewCount()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [refreshReviewCount])
+
+  // Re-fetch when the review page confirms a transaction
+  useEffect(() => {
+    const onReviewChange = () => refreshReviewCount()
+    window.addEventListener('reviewCountChanged', onReviewChange)
+    return () => window.removeEventListener('reviewCountChanged', onReviewChange)
+  }, [refreshReviewCount])
 
   return (
     <aside

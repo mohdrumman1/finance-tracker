@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { CheckCircle, ChevronRight, AlertCircle, Inbox } from 'lucide-react'
+import { CheckCircle, ChevronRight, AlertCircle, ArrowLeftRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +46,7 @@ export default function ReviewPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [currentIdx, setCurrentIdx] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [applyToAllBanner, setApplyToAllBanner] = useState<string | null>(null)
 
   // Per-transaction edits
   const [selectedCategory, setSelectedCategory] = useState<string>('')
@@ -107,16 +108,52 @@ export default function ReviewPage() {
         merchantName: current.merchantName ?? current.descriptionNormalized ?? current.descriptionRaw,
       }
 
-      await fetch(`/api/transactions/${current.id}`, {
+      const res = await fetch(`/api/transactions/${current.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
+      const resData = await res.json()
 
+      if (applyToAll) {
+        const n = resData.appliedCount ?? 0
+        setApplyToAllBanner(
+          n > 0
+            ? `Applied to ${n} other matching transaction${n === 1 ? '' : 's'}`
+            : 'No other matching transactions found'
+        )
+        setTimeout(() => setApplyToAllBanner(null), 4000)
+        // Re-fetch the full queue since matching transactions were bulk-updated
+        await fetchData()
+      } else {
+        const nextTransactions = transactions.filter((_, i) => i !== currentIdx)
+        setTransactions(nextTransactions)
+        const nextIdx = Math.min(currentIdx, nextTransactions.length - 1)
+        setCurrentIdx(Math.max(0, nextIdx))
+      }
+
+      // Notify sidebar to refresh its review count badge
+      window.dispatchEvent(new Event('reviewCountChanged'))
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleMarkTransfer() {
+    if (!current) return
+    setSaving(true)
+    try {
+      await fetch(`/api/transactions/${current.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction: 'transfer', reviewStatus: 'reviewed', categoryId: null, subcategoryId: null }),
+      })
       const nextTransactions = transactions.filter((_, i) => i !== currentIdx)
       setTransactions(nextTransactions)
-      const nextIdx = Math.min(currentIdx, nextTransactions.length - 1)
-      setCurrentIdx(Math.max(0, nextIdx))
+      setCurrentIdx(Math.max(0, Math.min(currentIdx, nextTransactions.length - 1)))
+      window.dispatchEvent(new Event('reviewCountChanged'))
     } catch {
       // ignore
     } finally {
@@ -144,6 +181,14 @@ export default function ReviewPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      {/* Apply-to-all feedback banner */}
+      {applyToAllBanner && (
+        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          {applyToAllBanner}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -244,10 +289,16 @@ export default function ReviewPage() {
 
             {/* Actions */}
             <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-              <Button variant="ghost" onClick={handleSkip} disabled={currentIdx >= transactions.length - 1}>
-                Skip
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={handleSkip} disabled={currentIdx >= transactions.length - 1}>
+                  Skip
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+                <Button variant="outline" onClick={handleMarkTransfer} disabled={saving}>
+                  <ArrowLeftRight className="w-4 h-4 mr-1.5" />
+                  Transfer
+                </Button>
+              </div>
               <Button onClick={handleConfirm} disabled={saving}>
                 {saving ? (
                   <span className="flex items-center gap-2">

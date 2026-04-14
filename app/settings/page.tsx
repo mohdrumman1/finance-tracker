@@ -180,16 +180,107 @@ function AccountsTab() {
 
 // ---- Categories Tab ----
 
+const COLOR_PRESETS = [
+  '#6366f1', '#3b82f6', '#22c55e', '#f97316', '#f43f5e',
+  '#eab308', '#84cc16', '#14b8a6', '#ec4899', '#a855f7',
+  '#64748b', '#94a3b8', '#10b981', '#06b6d4', '#dc2626',
+]
+
 function CategoriesTab() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/categories')
-      .then(r => r.json())
-      .then(d => setCategories(Array.isArray(d) ? d : []))
-      .finally(() => setLoading(false))
+  // New category form
+  const [showAddCat, setShowAddCat] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [newCatColor, setNewCatColor] = useState('#6366f1')
+  const [savingCat, setSavingCat] = useState(false)
+  const [catError, setCatError] = useState<string | null>(null)
+
+  // New subcategory form (keyed by category id)
+  const [addingSubFor, setAddingSubFor] = useState<string | null>(null)
+  const [newSubName, setNewSubName] = useState('')
+  const [savingSub, setSavingSub] = useState(false)
+  const [subError, setSubError] = useState<string | null>(null)
+
+  const [deletingCatId, setDeletingCatId] = useState<string | null>(null)
+  const [deletingSubId, setDeletingSubId] = useState<string | null>(null)
+
+  const fetchCategories = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/categories')
+      const data = await res.json()
+      setCategories(Array.isArray(data) ? data : [])
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => { fetchCategories() }, [fetchCategories])
+
+  async function handleAddCategory(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newCatName.trim()) return
+    setSavingCat(true); setCatError(null)
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCatName.trim(), color: newCatColor }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed')
+      setNewCatName(''); setShowAddCat(false)
+      fetchCategories()
+    } catch (err) {
+      setCatError(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setSavingCat(false)
+    }
+  }
+
+  async function handleDeleteCategory(id: string) {
+    setDeletingCatId(id)
+    try {
+      await fetch(`/api/categories/${id}`, { method: 'DELETE' })
+      fetchCategories()
+    } finally {
+      setDeletingCatId(null)
+    }
+  }
+
+  async function handleAddSubcategory(categoryId: string, e: React.FormEvent) {
+    e.preventDefault()
+    if (!newSubName.trim()) return
+    setSavingSub(true); setSubError(null)
+    try {
+      const res = await fetch(`/api/categories/${categoryId}/subcategories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newSubName.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed')
+      setNewSubName(''); setAddingSubFor(null)
+      fetchCategories()
+    } catch (err) {
+      setSubError(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setSavingSub(false)
+    }
+  }
+
+  async function handleDeleteSubcategory(categoryId: string, subId: string) {
+    setDeletingSubId(subId)
+    try {
+      await fetch(`/api/categories/${categoryId}/subcategories/${subId}`, { method: 'DELETE' })
+      fetchCategories()
+    } finally {
+      setDeletingSubId(null)
+    }
+  }
 
   if (loading) return <div className="flex justify-center py-8"><LoadingSpinner /></div>
 
@@ -197,28 +288,160 @@ function CategoriesTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-gray-800">Categories ({categories.length})</h3>
-        <Badge variant="secondary">Read-only — system managed</Badge>
+        <Button size="sm" onClick={() => { setShowAddCat(true); setCatError(null) }} className="gap-1">
+          <Plus className="w-4 h-4" /> Add Category
+        </Button>
       </div>
+
+      {/* Add category form */}
+      {showAddCat && (
+        <Card>
+          <CardContent className="pt-5">
+            <form onSubmit={handleAddCategory} className="space-y-3">
+              {catError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">{catError}</p>}
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Category Name *</label>
+                <Input
+                  value={newCatName}
+                  onChange={e => setNewCatName(e.target.value)}
+                  placeholder="e.g. Entertainment"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Colour</label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {COLOR_PRESETS.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setNewCatColor(c)}
+                      className="w-6 h-6 rounded-full border-2 transition-transform"
+                      style={{
+                        backgroundColor: c,
+                        borderColor: newCatColor === c ? '#1e293b' : 'transparent',
+                        transform: newCatColor === c ? 'scale(1.2)' : 'scale(1)',
+                      }}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={newCatColor}
+                    onChange={e => setNewCatColor(e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+                    title="Custom colour"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={() => { setShowAddCat(false); setCatError(null) }}>Cancel</Button>
+                <Button type="submit" disabled={savingCat || !newCatName.trim()}>
+                  {savingCat ? <span className="flex items-center gap-2"><LoadingSpinner size="sm" />Saving...</span> : 'Add Category'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Category list */}
       <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 overflow-hidden">
-        {categories.map(c => (
-          <div key={c.id} className="px-5 py-3 bg-white hover:bg-gray-50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                <span className="font-medium text-gray-800">{c.name}</span>
-                {c.isSystem && <Badge variant="secondary" className="text-xs">System</Badge>}
+        {categories.map(c => {
+          const isExpanded = expandedId === c.id
+          return (
+            <div key={c.id} className="bg-white">
+              {/* Category row */}
+              <div className="flex items-center justify-between px-5 py-3 hover:bg-gray-50">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 flex-1 text-left"
+                  onClick={() => setExpandedId(isExpanded ? null : c.id)}
+                >
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                  <span className="font-medium text-gray-800">{c.name}</span>
+                  {c.isSystem && <Badge variant="secondary" className="text-xs">System</Badge>}
+                  <span className="text-xs text-gray-400 ml-1">{c.subcategories?.length ?? 0} subs</span>
+                </button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs h-7 px-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                    onClick={() => {
+                      setExpandedId(c.id)
+                      setAddingSubFor(c.id)
+                      setNewSubName('')
+                      setSubError(null)
+                    }}
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Sub
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="w-7 h-7 text-red-400 hover:text-red-600 hover:bg-red-50"
+                    onClick={() => handleDeleteCategory(c.id)}
+                    disabled={deletingCatId === c.id}
+                  >
+                    {deletingCatId === c.id ? <LoadingSpinner size="sm" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
               </div>
-              <span className="text-xs text-gray-400">{c.subcategories?.length ?? 0} subcategories</span>
+
+              {/* Subcategories (expanded) */}
+              {isExpanded && (
+                <div className="px-5 pb-3 bg-gray-50 border-t border-gray-100">
+                  <div className="flex flex-wrap gap-1.5 pt-3">
+                    {(c.subcategories ?? []).map(s => (
+                      <span
+                        key={s.id}
+                        className="flex items-center gap-1 text-xs bg-white border border-gray-200 text-gray-700 px-2.5 py-1 rounded-full"
+                      >
+                        {s.name}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubcategory(c.id, s.id)}
+                          disabled={deletingSubId === s.id}
+                          className="ml-1 text-gray-400 hover:text-red-500 disabled:opacity-40"
+                        >
+                          {deletingSubId === s.id ? <LoadingSpinner size="sm" /> : '×'}
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Add subcategory inline form */}
+                  {addingSubFor === c.id ? (
+                    <form onSubmit={(e) => handleAddSubcategory(c.id, e)} className="flex items-center gap-2 mt-3">
+                      {subError && <p className="text-xs text-red-600">{subError}</p>}
+                      <Input
+                        value={newSubName}
+                        onChange={e => setNewSubName(e.target.value)}
+                        placeholder="Subcategory name"
+                        className="h-8 text-sm"
+                        autoFocus
+                      />
+                      <Button type="submit" size="sm" className="h-8" disabled={savingSub || !newSubName.trim()}>
+                        {savingSub ? <LoadingSpinner size="sm" /> : 'Add'}
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => { setAddingSubFor(null); setSubError(null) }}>
+                        Cancel
+                      </Button>
+                    </form>
+                  ) : (
+                    <button
+                      type="button"
+                      className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      onClick={() => { setAddingSubFor(c.id); setNewSubName(''); setSubError(null) }}
+                    >
+                      <Plus className="w-3 h-3" /> Add subcategory
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-            {c.subcategories && c.subcategories.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2 pl-5">
-                {c.subcategories.map(s => (
-                  <span key={s.id} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{s.name}</span>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

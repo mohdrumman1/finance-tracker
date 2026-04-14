@@ -1,0 +1,22 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+    "ANTHROPIC_AUTH_TOKEN": "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",
+    "ANTHROPIC_API_KEY": "",
+    "ANTHROPIC_MODEL": "openrouter/free",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "openrouter/free",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "openrouter/free",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "openrouter/free",
+    "ANTHROPIC_SMALL_FAST_MODEL": "openrouter/free",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "openrouter/free"
+  },
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/mohdr/AppData/Local/npm-cache/_logs/**)",
+      "Read(//c/Users/mohdr/AppData/Local/npm-cache/_logs/$\\(ls 'C:/Users/mohdr/AppData/Local/npm-cache/**)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npx next:*)"
+    ]
+  }
+}
