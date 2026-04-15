@@ -452,9 +452,18 @@ export default function DashboardPage() {
                 <h3 className="font-semibold text-gray-900">{categoryModal.name}</h3>
                 <span className="text-sm text-gray-500">— {format(currentStart, 'MMMM yyyy')}</span>
               </div>
-              <button onClick={() => setCategoryModal(null)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/transactions?categoryId=${categoryModal.categoryId}&preset=1m`}
+                  onClick={() => setCategoryModal(null)}
+                  className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline"
+                >
+                  View all →
+                </Link>
+                <button onClick={() => setCategoryModal(null)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Body */}
