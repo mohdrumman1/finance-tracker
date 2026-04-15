@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Finance Tracker</string>
+    <string name="hint_server_url">Server URL (e.g. https://myapp.vercel.app)</string>
+    <string name="hint_api_key">API Key (from Settings → Webhook)</string>
+    <string name="hint_account_id">Account ID</string>
+    <string name="btn_save">Save Settings</string>
+    <string name="btn_test">Test Connection</string>
+    <string name="btn_grant_access">Grant Notification Access</string>
+    <string name="label_server_url">Server URL</string>
+    <string name="label_api_key">API Key</string>
+    <string name="label_account_id">Default Account ID</string>
+    <string name="label_status">Status</string>
+    <string name="status_no_access">Notification access not granted. Tap "Grant Notification Access" below.</string>
+    <string name="status_ready">Ready — listening for payment notifications.</string>
+    <string name="status_not_configured">Settings not saved. Enter server URL, API key, and account ID above.</string>
+</resources>

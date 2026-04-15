@@ -2,10 +2,19 @@ import type { ParsedRow } from '../parsers/CsvParser'
 import type { BankProfile } from '../profiles/ProfileRegistry'
 import { parseDate } from '../../utils/dateUtils'
 
+export interface WebhookPayload {
+  accountId: string
+  transactionDate: string // ISO8601
+  descriptionRaw: string
+  amount: number
+  direction: 'income' | 'expense' | 'transfer'
+  currency?: string
+}
+
 export interface NormalizedTransaction {
   id?: string
   accountId: string
-  sourceType: 'csv' | 'pdf' | 'manual'
+  sourceType: 'csv' | 'pdf' | 'manual' | 'pending_unverified'
   transactionDate: Date
   descriptionRaw: string
   descriptionNormalized: string
@@ -104,6 +113,38 @@ export class TransactionNormalizer {
       merchantName,
       amount,
       currency: 'AUD',
+      direction,
+      categoryId: null,
+      subcategoryId: null,
+      isRecurring: false,
+      isTransfer,
+      confidenceScore: 0,
+      reviewStatus: 'pending',
+    }
+  }
+
+  normalizeWebhook(payload: WebhookPayload): NormalizedTransaction {
+    const transactionDate = new Date(payload.transactionDate)
+    if (isNaN(transactionDate.getTime())) {
+      throw new Error(`Invalid transactionDate: "${payload.transactionDate}"`)
+    }
+
+    const amount = Math.abs(payload.amount)
+    const descriptionNormalized = this.normalizeDescription(payload.descriptionRaw)
+    const merchantName = this.extractMerchantName(descriptionNormalized)
+
+    const isTransfer = this.detectTransfer(descriptionNormalized)
+    const direction = isTransfer ? 'transfer' : payload.direction
+
+    return {
+      accountId: payload.accountId,
+      sourceType: 'pending_unverified',
+      transactionDate,
+      descriptionRaw: payload.descriptionRaw,
+      descriptionNormalized,
+      merchantName,
+      amount,
+      currency: payload.currency ?? 'AUD',
       direction,
       categoryId: null,
       subcategoryId: null,

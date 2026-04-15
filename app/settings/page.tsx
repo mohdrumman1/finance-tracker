@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, Trash2, Download, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, Download, AlertTriangle, Webhook, Copy, Eye, EyeOff, RefreshCw, CheckCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -678,6 +678,161 @@ function DataControlsTab() {
   )
 }
 
+// ---- Webhook Tab ----
+
+function WebhookTab() {
+  const [hasKey, setHasKey] = useState<boolean | null>(null)
+  const [newKey, setNewKey] = useState<string | null>(null)
+  const [showKey, setShowKey] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [copied, setCopied] = useState<'url' | 'key' | null>(null)
+
+  const webhookUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/api/webhooks/transaction`
+      : '/api/webhooks/transaction'
+
+  const checkKey = useCallback(async () => {
+    const res = await fetch('/api/settings/webhook-key')
+    const data = await res.json()
+    setHasKey(data.hasKey)
+  }, [])
+
+  useEffect(() => { checkKey() }, [checkKey])
+
+  async function handleGenerate() {
+    setGenerating(true)
+    setNewKey(null)
+    try {
+      const res = await fetch('/api/settings/webhook-key', { method: 'POST' })
+      const data = await res.json()
+      setNewKey(data.key)
+      setShowKey(true)
+      setHasKey(true)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function handleCopy(text: string, type: 'url' | 'key') {
+    await navigator.clipboard.writeText(text)
+    setCopied(type)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  return (
+    <div className="space-y-6">
+      <h3 className="text-base font-semibold text-gray-800">Webhook Integration</h3>
+      <p className="text-sm text-gray-500">
+        Use the webhook endpoint to automatically push transactions from your Android phone in real time.
+        Your companion Android app will send a POST request here whenever a payment notification arrives.
+      </p>
+
+      {/* Webhook URL */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Webhook className="w-4 h-4 text-indigo-500" />
+            Webhook Endpoint
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-sm bg-gray-50 border border-gray-200 rounded px-3 py-2 text-gray-700 font-mono truncate">
+              {webhookUrl}
+            </code>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleCopy(webhookUrl, 'url')}
+              className="shrink-0 gap-1"
+            >
+              {copied === 'url' ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+              {copied === 'url' ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
+          <p className="text-xs text-gray-400">
+            Method: <strong>POST</strong> · Content-Type: <strong>application/json</strong> · Auth: <strong>Bearer token</strong>
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* API Key */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">API Key</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {newKey ? (
+            <div className="space-y-2">
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                Save this key now — it will not be shown again. Store it in your Android app settings.
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-sm bg-gray-50 border border-gray-200 rounded px-3 py-2 font-mono truncate">
+                  {showKey ? newKey : '••••••••••••••••••••••••••••••••••••'}
+                </code>
+                <Button variant="ghost" size="icon" onClick={() => setShowKey(v => !v)}>
+                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleCopy(newKey, 'key')} className="shrink-0 gap-1">
+                  {copied === 'key' ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  {copied === 'key' ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              {hasKey
+                ? 'An API key is configured. Generate a new one to rotate it (this invalidates the old key).'
+                : 'No API key set. Generate one to enable the webhook endpoint.'}
+            </p>
+          )}
+
+          <Button
+            onClick={handleGenerate}
+            disabled={generating}
+            variant={hasKey ? 'outline' : 'default'}
+            className="gap-2"
+          >
+            {generating ? (
+              <span className="flex items-center gap-2"><RefreshCw className="w-4 h-4 animate-spin" />Generating...</span>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                {hasKey ? 'Regenerate Key' : 'Generate API Key'}
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Payload reference */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Expected Payload</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="text-xs bg-gray-50 border border-gray-200 rounded p-4 overflow-x-auto text-gray-700">
+{`POST /api/webhooks/transaction
+Authorization: Bearer <your-api-key>
+Content-Type: application/json
+
+{
+  "accountId": "<account-id-from-settings>",
+  "transactionDate": "2026-04-15T10:30:00+10:00",
+  "descriptionRaw": "WOOLWORTHS #1234 SYDNEY NSW",
+  "amount": 85.50,
+  "direction": "expense",
+  "currency": "AUD"
+}`}
+          </pre>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 // ---- Main Page ----
 
 export default function SettingsPage() {
@@ -689,6 +844,7 @@ export default function SettingsPage() {
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="rules">Merchant Rules</TabsTrigger>
           <TabsTrigger value="data">Data Controls</TabsTrigger>
+          <TabsTrigger value="webhook">Webhook</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounts">
@@ -702,6 +858,9 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="data">
           <DataControlsTab />
+        </TabsContent>
+        <TabsContent value="webhook">
+          <WebhookTab />
         </TabsContent>
       </Tabs>
     </div>
