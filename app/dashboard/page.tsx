@@ -10,12 +10,17 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts'
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Upload } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, Upload, Sparkles, X } from 'lucide-react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { AmountDisplay } from '@/components/shared/AmountDisplay'
 import { ConfidenceBadge } from '@/components/shared/ConfidenceBadge'
-import { LoadingPage } from '@/components/shared/LoadingSpinner'
+import { LoadingPage, LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { useRouter } from 'next/navigation'
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
@@ -28,6 +33,7 @@ interface Transaction {
   descriptionRaw: string
   amount: number
   direction: 'income' | 'expense' | 'transfer'
+  categoryId?: string
   category?: { name: string; color: string }
   confidenceScore: number
 }
@@ -104,12 +110,21 @@ function SummaryCard({ title, value, isRate, direction, previousValue, colorOver
   )
 }
 
+interface CategoryModal {
+  categoryId: string
+  name: string
+  color: string
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [currentTransactions, setCurrentTransactions] = useState<Transaction[]>([])
   const [previousTransactions, setPreviousTransactions] = useState<Transaction[]>([])
   const [cashflowData, setCashflowData] = useState<Array<{ month: string; Income: number; Expenses: number }>>([])
+  const [categoryModal, setCategoryModal] = useState<CategoryModal | null>(null)
+  const [modalTransactions, setModalTransactions] = useState<Transaction[]>([])
+  const [modalLoading, setModalLoading] = useState(false)
 
   const now = new Date()
   const currentStart = startOfMonth(now)
@@ -173,17 +188,37 @@ export default function DashboardPage() {
   const current = computeSummary(currentTransactions)
   const previous = computeSummary(previousTransactions)
 
-  // Top expense categories
-  const categoryMap: Record<string, number> = {}
+  // Top expense categories (with colors + ids)
+  const categoryMap: Record<string, { amount: number; color: string; categoryId: string }> = {}
   for (const t of currentTransactions) {
-    if (t.direction === 'expense' && t.category) {
-      const name = t.category.name
-      categoryMap[name] = (categoryMap[name] ?? 0) + Math.abs(t.amount)
+    if (t.direction === 'expense' && t.category && t.categoryId) {
+      const { name, color } = t.category
+      if (!categoryMap[name]) categoryMap[name] = { amount: 0, color, categoryId: t.categoryId }
+      categoryMap[name].amount += Math.abs(t.amount)
     }
   }
   const topCategories = Object.entries(categoryMap)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => b[1].amount - a[1].amount)
     .slice(0, 6)
+
+  const pieData = topCategories.map(([name, { amount, color }]) => ({ name, value: amount, color }))
+
+  async function openCategoryModal(name: string, categoryId: string, color: string) {
+    setCategoryModal({ categoryId, name, color })
+    setModalLoading(true)
+    setModalTransactions([])
+    try {
+      const res = await fetch(
+        `/api/transactions?categoryId=${categoryId}&startDate=${currentStart.toISOString()}&endDate=${currentEnd.toISOString()}&limit=200`
+      )
+      const data = await res.json()
+      setModalTransactions(data.transactions ?? [])
+    } catch {
+      // ignore
+    } finally {
+      setModalLoading(false)
+    }
+  }
 
   const recentTransactions = [...currentTransactions]
     .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime())
@@ -271,41 +306,84 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Category Breakdown */}
+        {/* Category Breakdown — donut chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Expense Categories</CardTitle>
+            <CardTitle>Spending by Category</CardTitle>
           </CardHeader>
           <CardContent>
-            {topCategories.length === 0 ? (
+            {pieData.length === 0 ? (
               <p className="text-sm text-gray-500 py-8 text-center">No expense data this month</p>
             ) : (
-              <div className="space-y-3">
-                {topCategories.map(([name, amount]) => {
-                  const maxAmount = topCategories[0][1]
-                  const pct = (amount / maxAmount) * 100
-                  return (
-                    <div key={name}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700 font-medium">{name}</span>
-                        <span className="text-red-600 font-medium tabular-nums">
-                          {new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(amount)}
-                        </span>
-                      </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-red-400 rounded-full transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
+              <div className="flex items-center gap-4">
+                <ResponsiveContainer width={160} height={160}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={45}
+                      outerRadius={72}
+                      strokeWidth={2}
+                      cursor="pointer"
+                      onClick={(entry) => {
+                        const cat = categoryMap[entry.name]
+                        if (cat) openCategoryModal(entry.name, cat.categoryId, cat.color)
+                      }}
+                    >
+                      {pieData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: unknown) =>
+                        new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(Number(value ?? 0))
+                      }
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex-1 space-y-2 min-w-0">
+                  {topCategories.map(([name, { amount, color, categoryId }]) => (
+                    <button
+                      key={name}
+                      onClick={() => openCategoryModal(name, categoryId, color)}
+                      className="flex items-center gap-2 w-full text-left rounded-md px-1.5 py-1 hover:bg-gray-50 transition-colors group"
+                    >
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                      <span className="text-sm text-gray-700 truncate flex-1 group-hover:text-indigo-600 transition-colors">{name}</span>
+                      <span className="text-sm font-medium tabular-nums text-gray-800">
+                        {new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', notation: 'compact' }).format(amount)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Advisor teaser */}
+      <Card className="border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">AI Finance Advisor</p>
+                <p className="text-xs text-gray-500">Get personalised insights and chat about your spending habits</p>
+              </div>
+            </div>
+            <Link href="/advisor">
+              <Button variant="outline" size="sm" className="shrink-0 border-indigo-200 text-indigo-700 hover:bg-indigo-100">
+                Open Advisor
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Transactions */}
       <Card>
@@ -362,6 +440,72 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+      {/* Category drill-down modal */}
+      {categoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setCategoryModal(null)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: categoryModal.color }} />
+                <h3 className="font-semibold text-gray-900">{categoryModal.name}</h3>
+                <span className="text-sm text-gray-500">— {format(currentStart, 'MMMM yyyy')}</span>
+              </div>
+              <button onClick={() => setCategoryModal(null)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto flex-1">
+              {modalLoading ? (
+                <div className="flex justify-center py-12">
+                  <LoadingSpinner />
+                </div>
+              ) : modalTransactions.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-12">No transactions found.</p>
+              ) : (
+                <>
+                  {/* Total */}
+                  <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 text-sm text-gray-600 flex justify-between">
+                    <span>{modalTransactions.length} transaction{modalTransactions.length !== 1 ? 's' : ''}</span>
+                    <span className="font-semibold text-gray-800">
+                      Total: {new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(
+                        modalTransactions.reduce((s, t) => s + Math.abs(t.amount), 0)
+                      )}
+                    </span>
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left px-6 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th className="text-left px-6 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Merchant</th>
+                        <th className="text-right px-6 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {modalTransactions.map((t) => (
+                        <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
+                            {format(new Date(t.transactionDate), 'dd MMM')}
+                          </td>
+                          <td className="px-6 py-3 text-gray-800 max-w-[280px] truncate">
+                            {t.merchantName ?? t.descriptionNormalized ?? t.descriptionRaw}
+                          </td>
+                          <td className="px-6 py-3 text-right font-medium text-gray-800 tabular-nums">
+                            {new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(Math.abs(t.amount))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

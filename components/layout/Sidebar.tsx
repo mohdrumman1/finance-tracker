@@ -12,6 +12,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +23,7 @@ const navItems = [
   { href: '/review', label: 'Review', icon: AlertCircle, showBadge: true },
   { href: '/budgets', label: 'Budgets', icon: DollarSign },
   { href: '/goals', label: 'Goals', icon: Target },
+  { href: '/advisor', label: 'AI Advisor', icon: Sparkles },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 

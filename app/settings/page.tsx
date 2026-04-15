@@ -63,6 +63,8 @@ function AccountsTab() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ name: '', institution: '', accountType: 'transaction', currency: 'AUD' })
   const [error, setError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const fetch_ = useCallback(async () => {
     setLoading(true)
@@ -95,6 +97,19 @@ function AccountsTab() {
       setError(err instanceof Error ? err.message : 'Failed to create account')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id)
+    try {
+      await fetch(`/api/accounts/${id}`, { method: 'DELETE' })
+      fetch_()
+    } catch {
+      // ignore
+    } finally {
+      setDeletingId(null)
+      setConfirmDeleteId(null)
     }
   }
 
@@ -162,17 +177,53 @@ function AccountsTab() {
       ) : accounts.length === 0 ? (
         <p className="text-sm text-gray-500 text-center py-8">No accounts yet. Add one above.</p>
       ) : (
-        <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 overflow-hidden">
-          {accounts.map(a => (
-            <div key={a.id} className="flex items-center justify-between px-5 py-4 bg-white hover:bg-gray-50">
-              <div>
-                <p className="font-medium text-gray-800">{a.name}</p>
-                <p className="text-sm text-gray-500">{a.institution} · {a.accountType} · {a.currency}</p>
+        <>
+          <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 overflow-hidden">
+            {accounts.map(a => (
+              <div key={a.id} className="flex items-center justify-between px-5 py-4 bg-white hover:bg-gray-50">
+                <div>
+                  <p className="font-medium text-gray-800">{a.name}</p>
+                  <p className="text-sm text-gray-500">{a.institution} · {a.accountType} · {a.currency}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary">{a.accountType}</Badge>
+                  <button
+                    onClick={() => setConfirmDeleteId(a.id)}
+                    disabled={deletingId === a.id}
+                    className="p-1.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    title="Delete account"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <Badge variant="secondary">{a.accountType}</Badge>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          {/* Confirm delete dialog */}
+          <Dialog open={!!confirmDeleteId} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete account?</DialogTitle>
+                <DialogDescription>
+                  {accounts.find(x => x.id === confirmDeleteId)
+                    ? `"${accounts.find(x => x.id === confirmDeleteId)!.name}" (${accounts.find(x => x.id === confirmDeleteId)!.institution}) will be permanently deleted. This cannot be undone.`
+                    : ''}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>Cancel</Button>
+                <Button
+                  variant="destructive"
+                  disabled={!!deletingId}
+                  onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+                >
+                  {deletingId ? <LoadingSpinner size="sm" /> : 'Delete'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
       )}
     </div>
   )

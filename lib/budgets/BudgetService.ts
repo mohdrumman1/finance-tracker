@@ -7,10 +7,12 @@ import {
 } from '../utils/dateUtils'
 
 export interface BudgetActual {
+  id: string
   categoryId: string
   categoryName: string
-  budgeted: number
-  actual: number
+  categoryColor: string
+  budgetAmount: number
+  actualAmount: number
   remaining: number
   percentUsed: number
   pacingStatus: 'on_track' | 'at_risk' | 'over_budget'
@@ -60,10 +62,12 @@ export class BudgetService {
       }
 
       results.push({
+        id: budget.id,
         categoryId: budget.categoryId,
         categoryName: budget.category.name,
-        budgeted: budget.amount,
-        actual,
+        categoryColor: budget.category.color,
+        budgetAmount: budget.amount,
+        actualAmount: actual,
         remaining,
         percentUsed,
         pacingStatus,
