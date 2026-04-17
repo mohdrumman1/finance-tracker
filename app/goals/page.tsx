@@ -422,10 +422,10 @@ export default function GoalsPage() {
                 {saving ? (
                   <span className="flex items-center gap-2">
                     <LoadingSpinner size="sm" />
-                    Creating...
+                    {editingId ? 'Saving...' : 'Creating...'}
                   </span>
                 ) : (
-                  'Create Goal'
+                  {editingId ? 'Save Changes' : 'Create Goal'}
                 )}
               </Button>
             </DialogFooter>
