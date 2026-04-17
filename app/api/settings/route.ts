@@ -14,20 +14,36 @@ export async function GET() {
   }
 }
 
+async function upsertSettings(body: Record<string, unknown>) {
+  // Accept either { key, value } single-setting shape or a key-value map
+  const pairs: [string, unknown][] =
+    'key' in body && 'value' in body
+      ? [[String(body.key), body.value]]
+      : Object.entries(body)
+
+  for (const [key, value] of pairs) {
+    await prisma.appSetting.upsert({
+      where: { key },
+      update: { value: String(value), updatedAt: new Date() },
+      create: { key, value: String(value) },
+    })
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json()
-
-    for (const [key, value] of Object.entries(body)) {
-      await prisma.appSetting.upsert({
-        where: { key },
-        update: { value: String(value), updatedAt: new Date() },
-        create: { key, value: String(value) },
-      })
-    }
-
+    await upsertSettings(await request.json())
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch {
+    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    await upsertSettings(await request.json())
+    return NextResponse.json({ success: true })
+  } catch {
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
   }
 }

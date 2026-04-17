@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
     })
 
     const token = signToken({ userId: user.id, email: user.email, onboardingCompleted: false })
+    const opts = cookieOptions(token)
     const res = NextResponse.json({ success: true })
-    res.cookies.set(cookieOptions(token))
+    res.cookies.set(opts.name, opts.value, opts)
     return res
   } catch (err) {
     console.error('[POST /api/auth/register]', err)

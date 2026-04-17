@@ -13,6 +13,8 @@ import {
   Plus,
   Trash2,
   Loader2,
+  Sparkles,
+  MapPin,
 } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -83,6 +85,9 @@ export default function OnboardingPage() {
 
   // Step 3 – budgets
   const [budgets, setBudgets] = useState<BudgetDraft[]>(INITIAL_BUDGETS)
+  const [city, setCity] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiNote, setAiNote] = useState('')
 
   // Step 4 – goal
   const [goal, setGoal] = useState<GoalDraft>({
@@ -108,6 +113,38 @@ export default function OnboardingPage() {
     setBudgets((prev) => prev.map((b, idx) => (idx === i ? { ...b, amount: value } : b)))
   }
 
+  async function suggestBudgets() {
+    if (!city.trim()) return
+    setAiLoading(true)
+    setAiNote('')
+    try {
+      const res = await fetch('/api/ai/budget-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          city: city.trim(),
+          income: monthlyIncome ? parseFloat(monthlyIncome) : undefined,
+          categories: budgets.map((b) => b.categoryName),
+        }),
+      })
+      const data = await res.json()
+      if (data.amounts) {
+        setBudgets((prev) =>
+          prev.map((b) =>
+            data.amounts[b.categoryName] != null
+              ? { ...b, amount: String(data.amounts[b.categoryName]) }
+              : b
+          )
+        )
+        setAiNote(`Suggestions loaded for ${city.trim()}. Feel free to adjust.`)
+      }
+    } catch {
+      setAiNote("Couldn't fetch AI suggestions. Using defaults.")
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   // ── navigation
   function next() { setStep((s) => Math.min(s + 1, STEPS.length - 1)) }
   function back() { setStep((s) => Math.max(s - 1, 0)) }
@@ -127,37 +164,41 @@ export default function OnboardingPage() {
         })
       }
 
-      // 2. Save monthly income as app setting
-      if (monthlyIncome) {
+      // 2. Save monthly income + city as app settings
+      const settingsPayload: Record<string, string> = {}
+      if (monthlyIncome) settingsPayload.monthlyIncome = monthlyIncome
+      if (city.trim()) settingsPayload.city = city.trim()
+      if (Object.keys(settingsPayload).length > 0) {
         await fetch('/api/settings', {
-          method: 'POST',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: 'monthlyIncome', value: monthlyIncome }),
+          body: JSON.stringify(settingsPayload),
         })
       }
 
-      // 3. Create categories + budgets
+      // 3. Create categories + budgets in parallel
       const now = new Date()
       const year = now.getFullYear()
       const month = now.getMonth() + 1
-      for (const b of budgets) {
-        if (!b.amount || parseFloat(b.amount) <= 0) continue
-        // Upsert category first
-        const catRes = await fetch('/api/categories', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: b.categoryName, color: b.color }),
-        })
-        if (catRes.ok) {
-          const cat = await catRes.json()
-          // Set budget
-          await fetch('/api/budgets', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ categoryId: cat.id, amount: parseFloat(b.amount), year, month }),
+      await Promise.all(
+        budgets
+          .filter((b) => b.amount && parseFloat(b.amount) > 0)
+          .map(async (b) => {
+            const catRes = await fetch('/api/categories', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: b.categoryName, color: b.color }),
+            })
+            if (catRes.ok) {
+              const cat = await catRes.json()
+              await fetch('/api/budgets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ categoryId: cat.id, amount: parseFloat(b.amount), year, month }),
+              })
+            }
           })
-        }
-      }
+      )
 
       // 4. Create goal
       if (goal.name && goal.targetAmount) {
@@ -185,10 +226,8 @@ export default function OnboardingPage() {
   }
 
   async function goToDashboard() {
-    // Ensure onboarding marked complete if they skipped finish()
     await fetch('/api/auth/complete-onboarding', { method: 'POST' })
     router.push('/dashboard')
-    router.refresh()
   }
 
   // ── render
@@ -360,8 +399,37 @@ export default function OnboardingPage() {
             <div>
               <h2 className="text-2xl font-bold text-white mb-1">Set monthly budgets</h2>
               <p className="text-gray-400 text-sm mb-6">
-                We&apos;ve suggested amounts based on typical spending. Adjust to match your lifestyle. Set to 0 to skip a category.
+                Enter your city to get AI-powered cost-of-living suggestions, or adjust manually.
               </p>
+
+              {/* City input + AI suggest */}
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-5">
+                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5" /> City or Town
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="e.g. Sydney, Melbourne, Brisbane…"
+                    value={city}
+                    onChange={(e) => { setCity(e.target.value); setAiNote('') }}
+                    className="flex-1 px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={suggestBudgets}
+                    disabled={!city.trim() || aiLoading}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors shrink-0"
+                  >
+                    {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    {aiLoading ? 'Loading…' : 'Suggest'}
+                  </button>
+                </div>
+                {aiNote && (
+                  <p className="mt-2 text-xs text-indigo-400">{aiNote}</p>
+                )}
+              </div>
+
               <div className="space-y-3 mb-8">
                 {budgets.map((b, i) => (
                   <div key={b.categoryName} className="flex items-center gap-3 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3">

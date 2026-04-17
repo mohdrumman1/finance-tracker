@@ -5,8 +5,8 @@ const goalService = new GoalService()
 
 export async function GET() {
   try {
-    const goals = await goalService.listGoals()
-    return NextResponse.json(goals)
+    const progress = await goalService.listGoals()
+    return NextResponse.json(progress.map((p) => p.goal))
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch goals' }, { status: 500 })
   }

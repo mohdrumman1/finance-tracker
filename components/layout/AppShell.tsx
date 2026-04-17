@@ -11,7 +11,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const showShell = !NO_SHELL_PREFIXES.some((p) => pathname.startsWith(p))
 
   if (!showShell) {
-    return <>{children}</>
+    return <div className="flex-1 min-h-screen">{children}</div>
   }
 
   return (

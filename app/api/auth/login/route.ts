@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
-    if (!user) {
+    if (!user || !user.password) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
@@ -26,8 +26,9 @@ export async function POST(req: NextRequest) {
       email: user.email,
       onboardingCompleted: user.onboardingCompleted,
     })
+    const opts = cookieOptions(token)
     const res = NextResponse.json({ success: true, onboardingCompleted: user.onboardingCompleted })
-    res.cookies.set(cookieOptions(token))
+    res.cookies.set(opts.name, opts.value, opts)
     return res
   } catch (err) {
     console.error('[POST /api/auth/login]', err)

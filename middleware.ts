@@ -5,6 +5,8 @@ const PUBLIC_PATHS = [
   '/auth/register',
   '/api/auth/login',
   '/api/auth/register',
+  '/api/auth/google',
+  '/api/auth/google/callback',
 ]
 
 function decodeJWTPayload(token: string): Record<string, unknown> | null {

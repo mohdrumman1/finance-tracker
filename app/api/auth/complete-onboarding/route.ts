@@ -15,7 +15,8 @@ export async function POST() {
 
   // Re-issue cookie with onboardingCompleted: true so middleware routes correctly
   const token = signToken({ userId: session.userId, email: session.email, onboardingCompleted: true })
+  const opts = cookieOptions(token)
   const res = NextResponse.json({ success: true })
-  res.cookies.set(cookieOptions(token))
+  res.cookies.set(opts.name, opts.value, opts)
   return res
 }
