@@ -6,7 +6,18 @@ datasource db {
   provider = "sqlite"
 }
 
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+}
+
 model Account {
+  userId   String?   @db.Text
   id           String        @id @default(cuid())
   name         String
   institution  String
