@@ -425,7 +425,7 @@ export default function GoalsPage() {
                     {editingId ? 'Saving...' : 'Creating...'}
                   </span>
                 ) : (
-                  {editingId ? 'Save Changes' : 'Create Goal'}
+                  editingId ? 'Save Changes' : 'Create Goal'
                 )}
               </Button>
             </DialogFooter>

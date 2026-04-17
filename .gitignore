@@ -50,4 +50,4 @@ prisma/finance.db
 prisma/finance.db-*
 prisma/*.db
 
-settings.local.json
+.claude/settings.local.json
