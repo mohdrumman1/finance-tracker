@@ -9,13 +9,10 @@ describe('TransactionNormalizer', () => {
 
   it('normalizes a CommBank debit to positive amount, expense direction', () => {
     const row = {
-      date: '01/04/2026',
-      Date: '01/04/2026',
-      amount: '-50.00',
-      Amount: '-50.00',
-      description: 'WOOLWORTHS SYDNEY',
-      Description: 'WOOLWORTHS SYDNEY',
-      Balance: '2950.00',
+      '0': '01/04/2026',
+      '1': '-50.00',
+      '2': 'WOOLWORTHS SYDNEY',
+      '3': '2950.00',
     }
     const result = normalizer.normalize(row, CommbankProfile, accountId)
     expect(result.amount).toBe(50)
@@ -26,13 +23,10 @@ describe('TransactionNormalizer', () => {
 
   it('normalizes a CommBank credit to positive amount, income direction', () => {
     const row = {
-      date: '01/04/2026',
-      Date: '01/04/2026',
-      amount: '5000.00',
-      Amount: '5000.00',
-      description: 'PAYROLL ACME CORP',
-      Description: 'PAYROLL ACME CORP',
-      Balance: '7950.00',
+      '0': '01/04/2026',
+      '1': '5000.00',
+      '2': 'PAYROLL ACME CORP',
+      '3': '7950.00',
     }
     const result = normalizer.normalize(row, CommbankProfile, accountId)
     expect(result.amount).toBe(5000)
@@ -69,25 +63,19 @@ describe('TransactionNormalizer', () => {
 
   it('handles malformed date with error', () => {
     const row = {
-      date: 'not-a-date',
-      Date: 'not-a-date',
-      amount: '-50.00',
-      Amount: '-50.00',
-      description: 'TEST',
-      Description: 'TEST',
+      '0': 'not-a-date',
+      '1': '-50.00',
+      '2': 'TEST',
     }
     expect(() => normalizer.normalize(row, CommbankProfile, accountId)).toThrow()
   })
 
   it('detects transfer transactions', () => {
     const row = {
-      date: '01/04/2026',
-      Date: '01/04/2026',
-      amount: '-200.00',
-      Amount: '-200.00',
-      description: 'TRANSFER TO SAVINGS ACCOUNT',
-      Description: 'TRANSFER TO SAVINGS ACCOUNT',
-      Balance: '800.00',
+      '0': '01/04/2026',
+      '1': '-200.00',
+      '2': 'TRANSFER TO SAVINGS ACCOUNT',
+      '3': '800.00',
     }
     const result = normalizer.normalize(row, CommbankProfile, accountId)
     expect(result.direction).toBe('transfer')
@@ -96,13 +84,10 @@ describe('TransactionNormalizer', () => {
 
   it('normalizes description to uppercase', () => {
     const row = {
-      date: '01/04/2026',
-      Date: '01/04/2026',
-      amount: '-15.00',
-      Amount: '-15.00',
-      description: 'uber eats sydney',
-      Description: 'uber eats sydney',
-      Balance: '100.00',
+      '0': '01/04/2026',
+      '1': '-15.00',
+      '2': 'uber eats sydney',
+      '3': '100.00',
     }
     const result = normalizer.normalize(row, CommbankProfile, accountId)
     expect(result.descriptionNormalized).toBe('UBER EATS SYDNEY')

@@ -149,7 +149,6 @@ export class TransactionNormalizer {
       /\bCREDIT\s+CARD\s+REPAYMENT\b/,
       // AmEx statement: incoming payment from bank to settle the balance
       /\bONLINE\s+PAYMENT\s+RECEIVED\b/,
-      /\bPAYMENT\s+RECEIVED\b/,
       /\bTHANKYOU\b/,
     ]
     return transferPatterns.some((p) => p.test(description))

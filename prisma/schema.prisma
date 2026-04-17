@@ -7,17 +7,19 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  password            String
+  onboardingCompleted Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   accounts Account[]
 }
 
 model Account {
-  userId   String?   @db.Text
+  userId       String?
+  user         User?         @relation(fields: [userId], references: [id])
   id           String        @id @default(cuid())
   name         String
   institution  String

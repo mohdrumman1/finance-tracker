@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Upload,
@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Sparkles,
   List,
+  LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Badge } from '@/components/ui/badge'
@@ -31,8 +32,15 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [reviewCount, setReviewCount] = useState<number>(0)
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/auth/login')
+    router.refresh()
+  }
 
   const refreshReviewCount = React.useCallback(() => {
     fetch('/api/transactions?reviewStatus=needs_review&limit=1')
@@ -118,8 +126,19 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="p-2 border-t border-gray-700">
+      {/* Bottom: logout + collapse */}
+      <div className="p-2 border-t border-gray-700 space-y-1">
+        <button
+          onClick={handleLogout}
+          className={cn(
+            'flex items-center gap-3 w-full rounded-md px-3 py-2 text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-red-400 transition-colors',
+            collapsed && 'justify-center px-2'
+          )}
+          title={collapsed ? 'Sign out' : undefined}
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          {!collapsed && <span>Sign out</span>}
+        </button>
         <button
           onClick={() => setCollapsed((c) => !c)}
           className={cn(
