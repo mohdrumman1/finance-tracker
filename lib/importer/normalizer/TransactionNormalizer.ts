@@ -19,15 +19,16 @@ export interface NormalizedTransaction {
   isTransfer: boolean
   confidenceScore: number
   reviewStatus: 'pending' | 'needs_review' | 'auto_categorized'
+  isDuplicate?: boolean
 }
 
 export class TransactionNormalizer {
   normalize(row: ParsedRow, profile: BankProfile, accountId: string): NormalizedTransaction {
-    const dateCol = profile.columnMap.date as string
-    const descCol = profile.columnMap.description as string
-    const amountCol = profile.columnMap.amount as string | undefined
-    const debitCol = profile.columnMap.debit as string | undefined
-    const creditCol = profile.columnMap.credit as string | undefined
+    const dateCol = String(profile.columnMap.date)
+    const descCol = String(profile.columnMap.description)
+    const amountCol = profile.columnMap.amount !== undefined ? String(profile.columnMap.amount) : undefined
+    const debitCol = profile.columnMap.debit !== undefined ? String(profile.columnMap.debit) : undefined
+    const creditCol = profile.columnMap.credit !== undefined ? String(profile.columnMap.credit) : undefined
 
     const dateStr = row[dateCol] ?? ''
     const descriptionRaw = row[descCol] ?? ''
@@ -141,6 +142,14 @@ export class TransactionNormalizer {
       /\bTFR\b/,
       /\bINTERNAL\b/,
       /\bBALANCE\s+TRANSFER\b/,
+      // Credit card payments from bank accounts (e.g. CommBank paying AmEx bill)
+      /\bAMERICAN\s+EXPRESS\b/,
+      /\bAMEX\b/,
+      /\bCREDIT\s+CARD\s+PAYMENT\b/,
+      /\bCREDIT\s+CARD\s+REPAYMENT\b/,
+      // AmEx statement: incoming payment from bank to settle the balance
+      /\bONLINE\s+PAYMENT\s+RECEIVED\b/,
+      /\bTHANKYOU\b/,
     ]
     return transferPatterns.some((p) => p.test(description))
   }

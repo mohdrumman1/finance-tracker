@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate')
     const accountId = searchParams.get('accountId')
     const categoryId = searchParams.get('categoryId')
+    const direction = searchParams.get('direction')
     const reviewStatus = searchParams.get('reviewStatus')
     const page = parseInt(searchParams.get('page') ?? '1')
     const limit = parseInt(searchParams.get('limit') ?? '50')
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
     if (endDate) where.transactionDate = { ...where.transactionDate, lte: new Date(endDate) }
     if (accountId) where.accountId = accountId
     if (categoryId) where.categoryId = categoryId
+    if (direction) where.direction = direction
     if (reviewStatus) where.reviewStatus = reviewStatus
 
     const [transactions, total] = await Promise.all([

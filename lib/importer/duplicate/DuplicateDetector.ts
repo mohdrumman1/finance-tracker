@@ -29,6 +29,9 @@ export class DuplicateDetector {
     const dayStart = startOfDay(tx.transactionDate)
     const dayEnd = endOfDay(tx.transactionDate)
 
+    // Match on date + amount + direction + accountId.
+    // This catches re-imports of the same CSV even if description formatting differs.
+    // direction prevents an income of $X clashing with an expense of $X on the same day.
     const existing = await prisma.transaction.findFirst({
       where: {
         accountId,
@@ -37,8 +40,7 @@ export class DuplicateDetector {
           lte: dayEnd,
         },
         amount: tx.amount,
-        // Case-insensitive comparison via SQLite LIKE
-        descriptionRaw: tx.descriptionRaw,
+        direction: tx.direction,
       },
     })
 

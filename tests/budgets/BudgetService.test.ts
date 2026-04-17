@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../lib/db/client', () => ({
   prisma: {
+    $extends: {},
+    $global: {},
+    config: {
+      engine: { capabilities: {} },
+      env: { DEBUG: 'test' }
+    },
+    bootstrap: () => Promise.resolve(),
+    $client: undefined,
     budget: {
       findMany: vi.fn(),
       upsert: vi.fn(),
@@ -44,8 +52,8 @@ describe('BudgetService', () => {
 
     const results = await service.getBudgetsForMonth(2026, 4)
     expect(results).toHaveLength(1)
-    expect(results[0].actual).toBe(350)
-    expect(results[0].budgeted).toBe(400)
+    expect(results[0].actualAmount).toBe(350)
+    expect(results[0].budgetAmount).toBe(400)
     expect(results[0].remaining).toBe(50)
   })
 

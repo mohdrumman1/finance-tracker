@@ -31,7 +31,7 @@ const categories = [
 
 const subcategories: { categoryName: string; names: string[] }[] = [
   { categoryName: 'Eating Out', names: ['Restaurants', 'Cafes', 'Fast Food', 'Food Delivery', 'Bars & Pubs'] },
-  { categoryName: 'Transport', names: ['Rideshare', 'Public Transport', 'Parking', 'Tolls'] },
+  { categoryName: 'Transport', names: ['Rideshare', 'Public Transport', 'Parking', 'Tolls', 'Car Registration', 'CTP (Green Slip)'] },
   { categoryName: 'Shopping', names: ['Clothing', 'Electronics', 'Home & Garden', 'Books', 'Personal Care'] },
   { categoryName: 'Health', names: ['Pharmacy', 'Medical', 'Dental', 'Optical'] },
   { categoryName: 'Subscriptions', names: ['Streaming', 'Software', 'Memberships', 'News'] },

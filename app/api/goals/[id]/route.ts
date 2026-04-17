@@ -19,8 +19,12 @@ export async function PATCH(
         where: { id },
         data: {
           ...(body.name !== undefined && { name: body.name }),
+          ...(body.goalType !== undefined && { goalType: body.goalType }),
           ...(body.targetAmount !== undefined && { targetAmount: body.targetAmount }),
-          ...(body.targetDate !== undefined && { targetDate: new Date(body.targetDate) }),
+          ...(body.currentSavedAmount !== undefined && { currentSavedAmount: body.currentSavedAmount }),
+          ...(body.targetDate !== undefined && {
+            targetDate: body.targetDate ? new Date(body.targetDate) : null,
+          }),
           ...(body.status !== undefined && { status: body.status }),
           ...(body.notes !== undefined && { notes: body.notes }),
           ...(body.monthlyContributionTarget !== undefined && {
@@ -31,9 +35,22 @@ export async function PATCH(
       })
     }
 
-    const progress = await goalService.getGoalProgress(id)
-    return NextResponse.json(progress)
+    const updated = await prisma.goal.findUniqueOrThrow({ where: { id } })
+    return NextResponse.json(updated)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update goal' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    await prisma.goal.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete goal' }, { status: 500 })
   }
 }

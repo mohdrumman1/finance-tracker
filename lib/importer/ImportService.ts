@@ -28,7 +28,7 @@ export class ImportService {
     accountId: string
   ): Promise<NormalizedTransaction[]> {
     const profile = this.profileRegistry.getProfile(profileId)
-    const rows = this.csvParser.parse(content)
+    const rows = this.csvParser.parse(content, profile.hasHeader !== false)
     const normalized: NormalizedTransaction[] = []
 
     for (const row of rows) {
@@ -44,6 +44,13 @@ export class ImportService {
       } catch {
         // Skip malformed rows in preview
       }
+    }
+
+    // Mark duplicates so the preview UI can show which will be skipped
+    const { duplicates } = await this.duplicateDetector.filter(normalized, accountId)
+    const duplicateSet = new Set(duplicates)
+    for (const tx of normalized) {
+      tx.isDuplicate = duplicateSet.has(tx)
     }
 
     return normalized

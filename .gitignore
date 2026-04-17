@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Claude Code local settings (may contain API keys)
+.claude/
+
 /app/generated/prisma
 
 # SQLite database
@@ -47,3 +50,4 @@ prisma/finance.db
 prisma/finance.db-*
 prisma/*.db
 
+settings.local.json

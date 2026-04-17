@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, Target, Calendar, TrendingUp } from 'lucide-react'
+import { Plus, Target, Calendar, TrendingUp, Pencil, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -82,9 +82,11 @@ export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<GoalForm>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchGoals = useCallback(async () => {
     setLoading(true)
@@ -107,6 +109,40 @@ export default function GoalsPage() {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  function openNewDialog() {
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+    setError(null)
+    setDialogOpen(true)
+  }
+
+  function openEditDialog(goal: Goal) {
+    setEditingId(goal.id)
+    setForm({
+      name: goal.name,
+      goalType: goal.goalType,
+      targetAmount: String(goal.targetAmount),
+      currentSavedAmount: String(goal.currentSavedAmount),
+      targetDate: goal.targetDate ? goal.targetDate.slice(0, 10) : '',
+      monthlyContributionTarget: goal.monthlyContributionTarget
+        ? String(goal.monthlyContributionTarget)
+        : '',
+      notes: goal.notes ?? '',
+    })
+    setError(null)
+    setDialogOpen(true)
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id)
+    try {
+      await fetch(`/api/goals/${id}`, { method: 'DELETE' })
+      fetchGoals()
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name || !form.targetAmount) {
@@ -127,20 +163,27 @@ export default function GoalsPage() {
           : undefined,
         notes: form.notes || undefined,
       }
-      const res = await fetch('/api/goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+      const res = editingId
+        ? await fetch(`/api/goals/${editingId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+        : await fetch('/api/goals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          })
       if (!res.ok) {
         const d = await res.json()
-        throw new Error(d.error ?? 'Failed to create goal')
+        throw new Error(d.error ?? (editingId ? 'Failed to update goal' : 'Failed to create goal'))
       }
       setDialogOpen(false)
       setForm(EMPTY_FORM)
+      setEditingId(null)
       fetchGoals()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create goal')
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setSaving(false)
     }
@@ -167,7 +210,7 @@ export default function GoalsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800">Financial Goals</h2>
-        <Button onClick={() => { setDialogOpen(true); setForm(EMPTY_FORM); setError(null) }} className="gap-2">
+        <Button onClick={openNewDialog} className="gap-2">
           <Plus className="w-4 h-4" />
           New Goal
         </Button>
@@ -178,7 +221,7 @@ export default function GoalsPage() {
           icon={<Target className="w-16 h-16" />}
           title="No goals yet"
           description="Create a financial goal to track your progress toward saving, paying off debt, or making a big purchase."
-          action={{ label: 'Create First Goal', onClick: () => setDialogOpen(true) }}
+          action={{ label: 'Create First Goal', onClick: openNewDialog }}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -197,9 +240,26 @@ export default function GoalsPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-base leading-snug">{goal.name}</CardTitle>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${typeColor}`}>
-                      {typeLabel}
-                    </span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${typeColor}`}>
+                        {typeLabel}
+                      </span>
+                      <button
+                        onClick={() => openEditDialog(goal)}
+                        className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                        title="Edit goal"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(goal.id)}
+                        disabled={deletingId === goal.id}
+                        className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        title="Delete goal"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                   {goal.notes && (
                     <CardDescription className="text-xs">{goal.notes}</CardDescription>
@@ -264,7 +324,7 @@ export default function GoalsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New Goal</DialogTitle>
+            <DialogTitle>{editingId ? 'Edit Goal' : 'Create New Goal'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -362,10 +422,10 @@ export default function GoalsPage() {
                 {saving ? (
                   <span className="flex items-center gap-2">
                     <LoadingSpinner size="sm" />
-                    Creating...
+                    {editingId ? 'Saving...' : 'Creating...'}
                   </span>
                 ) : (
-                  'Create Goal'
+                  {editingId ? 'Save Changes' : 'Create Goal'}
                 )}
               </Button>
             </DialogFooter>
