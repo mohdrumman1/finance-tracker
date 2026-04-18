@@ -327,8 +327,9 @@ export default function DashboardPage() {
                       strokeWidth={2}
                       cursor="pointer"
                       onClick={(entry) => {
-                        const cat = categoryMap[entry.name]
-                        if (cat) openCategoryModal(entry.name, cat.categoryId, cat.color)
+                        const name = entry.name as string
+                        const cat = categoryMap[name]
+                        if (cat) openCategoryModal(name, cat.categoryId, cat.color)
                       }}
                     >
                       {pieData.map((entry, i) => (
