@@ -1,3 +1,4 @@
 {
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "buildCommand": "next build --webpack && (find /vercel/output -name '.vc-config.json' -delete 2>/dev/null; true)"
 }
