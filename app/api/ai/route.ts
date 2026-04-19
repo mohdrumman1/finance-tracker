@@ -18,7 +18,7 @@ async function buildFinancialContext(start: Date, end: Date): Promise<string> {
   for (const m of months) {
     const mStart = startOfMonth(m)
     const mEnd = endOfMonth(m)
-    const txns = await prisma.transaction.findMany({
+    const txns: { amount: number; direction: string }[] = await prisma.transaction.findMany({
       where: {
         transactionDate: { gte: mStart, lte: mEnd },
         reviewStatus: { not: 'needs_review' },
@@ -36,7 +36,7 @@ async function buildFinancialContext(start: Date, end: Date): Promise<string> {
   }
 
   // Category totals for full period
-  const catTxns = await prisma.transaction.findMany({
+  const catTxns: { amount: number; categoryId: string | null }[] = await prisma.transaction.findMany({
     where: {
       transactionDate: { gte: start, lte: end },
       reviewStatus: { not: 'needs_review' },
