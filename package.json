@@ -6,7 +6,6 @@
     "postinstall": "prisma generate",
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "postbuild": "node -e \"const fs=require('fs'),path=require('path'),base='/vercel/output/functions';const rm=(d)=>{if(!fs.existsSync(d))return;for(const f of fs.readdirSync(d)){const p=path.join(d,f);if(f==='.vc-config.json')fs.unlinkSync(p);else if(fs.statSync(p).isDirectory())rm(p)}};rm(base);\"",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
