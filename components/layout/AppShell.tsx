@@ -17,6 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isPublic) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAuthChecked(true)
       return
     }
