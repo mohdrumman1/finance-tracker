@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID!
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET!
-    const redirectUri = `${appUrl}/api/auth/google/callback`
+    const redirectUri = `${appUrl}/api/auth/google-callback`
 
     // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
     res.cookies.set(cookieOptions(token))
     return res
   } catch (err) {
-    console.error('[GET /api/auth/google/callback]', err)
+    console.error('[GET /api/auth/google-callback]', err)
     return NextResponse.redirect(`${appUrl}/auth/login?error=google_failed`)
   }
 }

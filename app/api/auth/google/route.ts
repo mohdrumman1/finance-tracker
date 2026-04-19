@@ -6,7 +6,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Google OAuth is not configured' }, { status: 501 })
   }
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`
+  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google-callback`
   const scope = 'openid email profile'
 
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
