@@ -345,7 +345,7 @@ export default function AdvisorPage() {
           {!report && !loadingReport && (
             <div className="text-center py-16 text-gray-400">
               <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Click "Generate Analysis" to get your personalised financial report</p>
+              <p className="text-sm">Click &quot;Generate Analysis&quot; to get your personalised financial report</p>
             </div>
           )}
         </TabsContent>
@@ -370,7 +370,7 @@ export default function AdvisorPage() {
                         onClick={() => { setInput(suggestion); textareaRef.current?.focus() }}
                         className="block w-full text-xs text-indigo-600 hover:text-indigo-700 hover:underline"
                       >
-                        "{suggestion}"
+                        &quot;{suggestion}&quot;
                       </button>
                     ))}
                   </div>
