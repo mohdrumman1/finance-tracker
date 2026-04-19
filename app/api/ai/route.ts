@@ -49,7 +49,7 @@ async function buildFinancialContext(start: Date, end: Date): Promise<string> {
   const totalExpenses = catTxns.reduce((s, t) => s + t.amount, 0)
 
   const catIds = [...new Set(catTxns.map((t) => t.categoryId).filter(Boolean))] as string[]
-  const categories = await prisma.category.findMany({ where: { id: { in: catIds } }, select: { id: true, name: true } })
+  const categories: { id: string; name: string }[] = await prisma.category.findMany({ where: { id: { in: catIds } }, select: { id: true, name: true } })
   const catNameMap: Record<string, string> = Object.fromEntries(categories.map((c) => [c.id, c.name]))
 
   const catMap: Record<string, number> = {}
@@ -65,7 +65,7 @@ async function buildFinancialContext(start: Date, end: Date): Promise<string> {
     })
 
   // Top merchants
-  const merchantTxns = await prisma.transaction.findMany({
+  const merchantTxns: { merchantName: string | null; amount: number }[] = await prisma.transaction.findMany({
     where: {
       transactionDate: { gte: start, lte: end },
       reviewStatus: { not: 'needs_review' },
