@@ -14,10 +14,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [authChecked, setAuthChecked] = useState(false)
 
   const isPublic = PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
+  const showShell = !NO_SHELL_PREFIXES.some((p) => pathname.startsWith(p))
+  const isLoading = !isPublic && !authChecked
 
   useEffect(() => {
     if (isPublic) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAuthChecked(true)
       return
     }
@@ -46,18 +47,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       })
   }, [pathname, isPublic, router])
 
-  if (!isPublic && !authChecked) {
-    return <div className="flex-1 min-h-screen bg-gray-950" />
-  }
-
-  const showShell = !NO_SHELL_PREFIXES.some((p) => pathname.startsWith(p))
-
   if (!showShell) {
     return <div className="flex-1 min-h-screen">{children}</div>
   }
 
   return (
     <>
+      {isLoading && <div className="fixed inset-0 bg-gray-950 z-50" />}
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header />
