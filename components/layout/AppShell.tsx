@@ -11,17 +11,15 @@ const NO_SHELL_PREFIXES = ['/auth/', '/onboarding']
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [authChecked, setAuthChecked] = useState(false)
+  const [_authChecked, setAuthChecked] = useState(false)
 
   const isPublic = PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
   const showShell = !NO_SHELL_PREFIXES.some((p) => pathname.startsWith(p))
-  const isLoading = !isPublic && !authChecked
+  const authChecked = isPublic || _authChecked
+  const isLoading = !authChecked
 
   useEffect(() => {
-    if (isPublic) {
-      setAuthChecked(true)
-      return
-    }
+    if (isPublic) return
 
     fetch('/api/auth/me')
       .then((res) => {
