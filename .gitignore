@@ -47,6 +47,10 @@ next-env.d.ts
 
 # SQLite database
 prisma/finance.db
+
+# Real bank statement fixtures — never commit these
+fixtures/commbank-sample.pdf
+fixtures/*.pdf
 prisma/finance.db-*
 prisma/*.db
 
