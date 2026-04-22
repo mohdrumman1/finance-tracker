@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Monyze
 
-## Getting Started
+Personal finance tracker with AI-powered categorisation, budgets, goals, and transaction review.
 
-First, run the development server:
+**Live:** [monyze.vercel.app](https://monyze.vercel.app)
+
+---
+
+## Stack
+
+- Next.js 15 (App Router) + TypeScript
+- Tailwind CSS v4
+- Prisma + Turso (LibSQL) in production, SQLite locally
+- Google OAuth + JWT auth
+- Vercel deployment
+
+## Local dev
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Copy `.env.example` to `.env` and fill in your keys.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Future Improvements
 
-## Learn More
+### High priority
+- **PDF statement import** — parse bank PDF statements directly (no CSV needed). ING, and many other banks only offer PDFs. Use a server-side PDF parser (e.g. `pdf-parse`) to extract transaction rows and run them through the existing import pipeline.
+- **Westpac, ANZ, NAB bank profiles** — add dedicated CSV parsers for these banks so users don't need to use Generic CSV.
+- **Email-based password reset** — send a reset link via a transactional email provider (Resend or Postmark).
 
-To learn more about Next.js, take a look at the following resources:
+### Import & data
+- **Automatic bank sync** — connect directly to bank accounts via open banking (Basiq or Frollo API) to pull transactions automatically without CSV uploads.
+- **Multi-account support** — track multiple bank accounts separately with per-account balance and transaction views.
+- **Recurring transaction detection** — automatically flag subscriptions and regular bills.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Budgets & goals
+- **Budget rollover** — carry unspent budget from one month to the next.
+- **Savings rate tracking** — show income vs. expenses as a savings rate % over time.
+- **Goal auto-contributions** — link a goal to a category and auto-calculate projected completion date.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Reports
+- **Monthly summary email** — send a brief spending recap at the end of each month.
+- **Year-in-review** — annual breakdown of spending by category with trends.
+- **Export to CSV/PDF** — let users download their full transaction history.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### UX
+- **Mobile app (PWA)** — make the app installable on iOS/Android as a progressive web app.
+- **Dark mode** — toggle between light and dark themes.
+- **Bulk transaction editing** — select and re-categorise multiple transactions at once.
+- **Search and filter** — full-text search across all transactions with date/category/amount filters.
