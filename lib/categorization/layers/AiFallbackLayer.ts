@@ -6,13 +6,22 @@ import type { CategorizationResult } from '../CategorizationService'
 const aiProvider = new AIProvider()
 
 export class AiFallbackLayer {
+  private categoriesCache: { id: string; name: string }[] | null = null
+
+  private async getCategories() {
+    if (!this.categoriesCache) {
+      this.categoriesCache = await prisma.category.findMany({
+        select: { id: true, name: true },
+        orderBy: { sortOrder: 'asc' },
+      })
+    }
+    return this.categoriesCache
+  }
+
   async categorize(transaction: NormalizedTransaction): Promise<CategorizationResult | null> {
     if (!aiProvider.isEnabled()) return null
 
-    const categories = await prisma.category.findMany({
-      select: { id: true, name: true },
-      orderBy: { sortOrder: 'asc' },
-    })
+    const categories = await this.getCategories()
 
     const merchantDesc =
       transaction.merchantName ||
