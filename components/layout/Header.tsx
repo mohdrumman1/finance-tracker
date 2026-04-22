@@ -19,7 +19,7 @@ function getTitle(pathname: string): string {
   for (const [key, title] of Object.entries(pageTitles)) {
     if (pathname === key || pathname.startsWith(key + '/')) return title
   }
-  return 'Finance Tracker'
+  return 'Monyze'
 }
 
 export function Header() {

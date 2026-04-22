@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none">
+  <!-- Icon: M in rounded square -->
+  <rect width="48" height="48" rx="12" fill="#4F46E5"/>
+  <path d="M12 34V14h4l8 12 8-12h4v20h-4V22l-8 11-8-11v12h-4z" fill="white"/>
+  <!-- Wordmark -->
+  <text x="58" y="34" font-family="system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#111827">Monyze</text>
+</svg>

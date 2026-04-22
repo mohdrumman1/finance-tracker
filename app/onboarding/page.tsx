@@ -240,7 +240,7 @@ export default function OnboardingPage() {
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600">
           <DollarSign className="w-5 h-5 text-white" />
         </div>
-        <span className="font-semibold text-white text-sm">Finance Tracker</span>
+        <span className="font-semibold text-white text-sm">Monyze</span>
       </div>
 
       {/* Step progress */}
@@ -275,7 +275,7 @@ export default function OnboardingPage() {
               <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 mx-auto mb-6">
                 <DollarSign className="w-9 h-9 text-white" />
               </div>
-              <h1 className="text-3xl font-bold text-white mb-3">Welcome to Finance Tracker</h1>
+              <h1 className="text-3xl font-bold text-white mb-3">Welcome to Monyze</h1>
               <p className="text-gray-400 mb-4 leading-relaxed">
                 Let&apos;s get you set up in under 2 minutes. We&apos;ll help you:
               </p>

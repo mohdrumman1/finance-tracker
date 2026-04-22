@@ -88,7 +88,7 @@ export default function RegisterPage() {
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600">
             <DollarSign className="w-6 h-6 text-white" />
           </div>
-          <span className="text-xl font-semibold text-white">Finance Tracker</span>
+          <span className="text-xl font-semibold text-white">Monyze</span>
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">

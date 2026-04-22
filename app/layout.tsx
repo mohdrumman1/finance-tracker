@@ -3,8 +3,9 @@ import './globals.css'
 import { AppShell } from '@/components/layout/AppShell'
 
 export const metadata: Metadata = {
-  title: 'Finance Tracker',
-  description: 'Personal finance tracker',
+  title: 'Monyze',
+  description: 'Your personal finance dashboard',
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({
