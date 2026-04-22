@@ -54,6 +54,19 @@ export class CategorizationService {
     }
   }
 
+  async categorizeFast(transaction: NormalizedTransaction): Promise<CategorizationResult> {
+    const exactResult = await this.exactLayer.categorize(transaction)
+    if (exactResult && exactResult.confidence >= REVIEW_THRESHOLD) return exactResult
+
+    const regexResult = await this.regexLayer.categorize(transaction)
+    if (regexResult && regexResult.confidence >= REVIEW_THRESHOLD) return regexResult
+
+    const heuristicResult = await this.heuristicLayer.categorize(transaction)
+    if (heuristicResult && heuristicResult.confidence >= REVIEW_THRESHOLD) return heuristicResult
+
+    return { categoryId: null, subcategoryId: null, confidence: 0, method: 'none', reason: 'No rule matched' }
+  }
+
   async categorizeBatch(
     transactions: NormalizedTransaction[]
   ): Promise<CategorizationResult[]> {

@@ -34,7 +34,7 @@ export class ImportService {
         rows.map(async (row) => {
           try {
             const tx = this.normalizer.normalize(row, profile, accountId)
-            const catResult = await this.categorizationService.categorize(tx)
+            const catResult = await this.categorizationService.categorizeFast(tx)
             tx.categoryId = catResult.categoryId
             tx.subcategoryId = catResult.subcategoryId
             tx.confidenceScore = catResult.confidence

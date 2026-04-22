@@ -62,7 +62,41 @@ export default function ImportsPage() {
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [categorizingBatchId, setCategorizingBatchId] = useState<string | null>(null)
+  const [categorizeProgress, setCategorizeProgress] = useState<{ done: number; total: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Poll background AI categorization until complete
+  React.useEffect(() => {
+    if (!categorizingBatchId) return
+    let active = true
+
+    async function runChunk() {
+      if (!active || !categorizingBatchId) return
+      try {
+        const res = await fetch('/api/categorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ batchId: categorizingBatchId }),
+        })
+        const data = await res.json()
+        if (!active) return
+        const total = categorizeProgress?.total ?? (data.remaining + data.processed)
+        setCategorizeProgress({ done: total - data.remaining, total })
+        if (data.remaining > 0) {
+          setTimeout(runChunk, 500)
+        } else {
+          setCategorizingBatchId(null)
+        }
+      } catch {
+        // silently stop on error — transactions are already saved
+        setCategorizingBatchId(null)
+      }
+    }
+
+    runChunk()
+    return () => { active = false }
+  }, [categorizingBatchId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function addFiles(newFiles: FileList | File[]) {
     const arr = Array.from(newFiles).filter((f) => f.name.endsWith('.csv'))
@@ -126,7 +160,7 @@ export default function ImportsPage() {
     }
   }
 
-  async function importOne(entry: FileEntry): Promise<{ imported: number; duplicatesSkipped: number }> {
+  async function importOne(entry: FileEntry): Promise<{ imported: number; duplicatesSkipped: number; batchId: string | null }> {
     const formData = new FormData()
     formData.append('file', entry.file)
     formData.append('profileId', entry.profileId)
@@ -138,6 +172,7 @@ export default function ImportsPage() {
     return {
       imported: data.transactions?.length ?? data.totalRows ?? 0,
       duplicatesSkipped: data.duplicatesSkipped ?? 0,
+      batchId: data.batchId ?? null,
     }
   }
 
@@ -147,11 +182,21 @@ export default function ImportsPage() {
     setError(null)
     try {
       const results = await Promise.all(fileEntries.map(importOne))
-      setResult({
-        imported: results.reduce((s, r) => s + r.imported, 0),
-        duplicates: results.reduce((s, r) => s + r.duplicatesSkipped, 0),
-        errors: 0,
-      })
+      const imported = results.reduce((s, r) => s + r.imported, 0)
+      const duplicates = results.reduce((s, r) => s + r.duplicatesSkipped, 0)
+      setResult({ imported, duplicates, errors: 0 })
+
+      // Kick off background AI categorization using the first batchId returned
+      const firstBatchId = results.find(r => r.batchId)?.batchId ?? null
+      if (firstBatchId) {
+        const statusRes = await fetch(`/api/categorize?batchId=${firstBatchId}`)
+        const status = await statusRes.json()
+        if (status.remaining > 0) {
+          setCategorizeProgress({ done: status.total - status.remaining, total: status.total })
+          setCategorizingBatchId(firstBatchId)
+        }
+      }
+
       setStep(3)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed')
@@ -166,6 +211,8 @@ export default function ImportsPage() {
     setPreview([])
     setResult(null)
     setError(null)
+    setCategorizingBatchId(null)
+    setCategorizeProgress(null)
   }
 
   const duplicateCount = preview.filter((t) => t.isDuplicate).length
@@ -446,6 +493,34 @@ export default function ImportsPage() {
                 <div className="text-sm text-gray-500">Errors</div>
               </div>
             </div>
+
+            {/* Background AI categorization progress */}
+            {(categorizingBatchId || categorizeProgress) && (
+              <div className="w-full max-w-sm space-y-2">
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>
+                    {categorizingBatchId
+                      ? `AI categorising transactions...`
+                      : 'Categorisation complete'}
+                  </span>
+                  {categorizeProgress && (
+                    <span>{categorizeProgress.done} / {categorizeProgress.total}</span>
+                  )}
+                </div>
+                <Progress
+                  value={
+                    categorizeProgress && categorizeProgress.total > 0
+                      ? (categorizeProgress.done / categorizeProgress.total) * 100
+                      : 0
+                  }
+                  className="h-1.5"
+                />
+                <p className="text-xs text-gray-400 text-center">
+                  You can review transactions now — categories will fill in automatically.
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-3 mt-4">
               <Button variant="outline" onClick={reset}>
                 Import More
