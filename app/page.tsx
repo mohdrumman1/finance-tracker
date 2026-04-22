@@ -296,7 +296,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
               Everything you need,{' '}
-              <span className="gradient-text">nothing you don't</span>
+              <span className="gradient-text">nothing you don&apos;t</span>
             </h2>
             <p className="text-gray-400 text-lg max-w-xl mx-auto">
               Monyze strips out the noise and gives you a clear, honest picture of your financial life.
