@@ -15,6 +15,7 @@ import {
 import { ConfidenceBadge } from '@/components/shared/ConfidenceBadge'
 import { AmountDisplay } from '@/components/shared/AmountDisplay'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { Progress } from '@/components/ui/progress'
 import { format } from 'date-fns'
 
 interface PreviewTransaction {
@@ -115,7 +116,7 @@ export default function ImportsPage() {
     e.preventDefault()
     setDragging(false)
     addFiles(e.dataTransfer.files)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) addFiles(e.target.files)
