@@ -87,6 +87,7 @@ export default function GoalsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const fetchGoals = useCallback(async () => {
     setLoading(true)
@@ -133,10 +134,16 @@ export default function GoalsPage() {
     setDialogOpen(true)
   }
 
-  async function handleDelete(id: string) {
-    setDeletingId(id)
+  function handleDelete(id: string) {
+    setConfirmDeleteId(id)
+  }
+
+  async function confirmDelete() {
+    if (!confirmDeleteId) return
+    setDeletingId(confirmDeleteId)
+    setConfirmDeleteId(null)
     try {
-      await fetch(`/api/goals/${id}`, { method: 'DELETE' })
+      await fetch(`/api/goals/${confirmDeleteId}`, { method: 'DELETE' })
       fetchGoals()
     } finally {
       setDeletingId(null)
@@ -320,6 +327,24 @@ export default function GoalsPage() {
         </div>
       )}
 
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={confirmDeleteId !== null} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete this goal?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">This action cannot be undone. The goal and all its progress data will be permanently removed.</p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setConfirmDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* New Goal Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
@@ -380,6 +405,7 @@ export default function GoalsPage() {
                   onChange={(e) => updateForm('currentSavedAmount', e.target.value)}
                   placeholder="0"
                 />
+                <p className="text-xs text-gray-400">Enter the amount already saved. This is manually tracked — it won&apos;t auto-sync from transactions.</p>
               </div>
             </div>
 

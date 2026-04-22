@@ -209,6 +209,16 @@ export default function ReviewPage() {
         />
       </div>
 
+      {/* How-to banner */}
+      <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700">
+        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-blue-400" />
+        <span>
+          <strong>Confirm &amp; Next</strong> saves the category you selected.{' '}
+          <strong>Skip</strong> moves to the next transaction without saving — you can come back to it.{' '}
+          <strong>Transfer</strong> marks it as a between-account transfer (e.g. topping up savings) and removes it from budget calculations.
+        </span>
+      </div>
+
       {current && (
         <Card>
           <CardHeader className="pb-3">
@@ -290,11 +300,11 @@ export default function ReviewPage() {
             {/* Actions */}
             <div className="flex items-center justify-between pt-2 border-t border-gray-100">
               <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={handleSkip} disabled={currentIdx >= transactions.length - 1}>
+                <Button variant="ghost" onClick={handleSkip} disabled={currentIdx >= transactions.length - 1} title="Move to the next transaction without categorising this one. You can come back to it later.">
                   Skip
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
-                <Button variant="outline" onClick={handleMarkTransfer} disabled={saving}>
+                <Button variant="outline" onClick={handleMarkTransfer} disabled={saving} title="Mark as a transfer between your own accounts (e.g. topping up savings). Excludes it from spending and budget reports.">
                   <ArrowLeftRight className="w-4 h-4 mr-1.5" />
                   Transfer
                 </Button>

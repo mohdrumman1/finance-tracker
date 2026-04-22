@@ -242,6 +242,11 @@ export default function ImportsPage() {
               </div>
             </div>
 
+            <p className="text-xs text-gray-500 -mt-3">
+              Download your CSV from your bank&apos;s internet banking under <strong>Transactions</strong> or <strong>Export</strong>.{' '}
+              CommBank: NetBank → Account → Export as CSV. Amex: My Account → Statements → Download.
+            </p>
+
             {/* File list */}
             {fileEntries.length > 0 && (
               <div className="space-y-2">
@@ -255,18 +260,20 @@ export default function ImportsPage() {
                       <p className="text-sm font-medium text-gray-800 truncate">{entry.file.name}</p>
                       <p className="text-xs text-gray-400">{(entry.file.size / 1024).toFixed(1)} KB</p>
                     </div>
-                    <Select value={entry.profileId} onValueChange={(v) => setProfile(entry.id, v)}>
-                      <SelectTrigger className="w-48 h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BANK_PROFILES.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <span title="Choose the format that matches your bank. Use Generic CSV if your bank isn't listed.">
+                      <Select value={entry.profileId} onValueChange={(v) => setProfile(entry.id, v)}>
+                        <SelectTrigger className="w-48 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {BANK_PROFILES.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); removeFile(entry.id) }}
                       className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
@@ -385,7 +392,14 @@ export default function ImportsPage() {
                 </tbody>
               </table>
             </div>
-            <div className="flex items-center justify-between p-4 border-t border-gray-200">
+            <div
+              className="flex items-center justify-between p-4 border-t border-gray-200"
+              title={
+                preview.filter((t) => !t.isDuplicate).length === 0 && !importing
+                  ? 'All transactions in this file already exist in your records — nothing new to import.'
+                  : undefined
+              }
+            >
               <Button variant="outline" onClick={reset}>
                 Back
               </Button>

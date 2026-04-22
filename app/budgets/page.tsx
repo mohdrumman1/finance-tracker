@@ -38,6 +38,14 @@ interface BudgetSummary {
   savingsPotential: number
 }
 
+const PACING_TOOLTIPS: Record<string, string> = {
+  'Ahead of pace': 'You have spent more than expected for this point in the month — you may go over budget.',
+  'On track': 'Your spending rate is where it should be mid-month.',
+  'Under budget': 'You have spent less than expected — trending well under budget.',
+  'Over budget': 'You have already exceeded your budget for this category this month.',
+  'Not started': 'No spending recorded in this category yet.',
+}
+
 function getPacingLabel(
   pct: number,
   daysElapsed: number,
@@ -401,7 +409,9 @@ export default function BudgetsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <Badge variant={pacing.variant}>{pacing.label}</Badge>
+                          <span title={PACING_TOOLTIPS[pacing.label] ?? ''} className="cursor-default">
+                            <Badge variant={pacing.variant}>{pacing.label}</Badge>
+                          </span>
                         </td>
                       </tr>
                     )

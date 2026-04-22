@@ -277,10 +277,11 @@ export default function OnboardingPage() {
               </div>
               <h1 className="text-3xl font-bold text-white mb-3">Welcome to Monyze</h1>
               <p className="text-gray-400 mb-4 leading-relaxed">
-                Let&apos;s get you set up in under 2 minutes. We&apos;ll help you:
+                Let&apos;s get you set up in under 2 minutes. After setup, you&apos;ll import your bank CSV to start tracking.
               </p>
               <ul className="text-left bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3 mb-8">
                 {[
+                  ['📥', 'Import your bank transactions', 'Download a CSV from your bank — Monyze reads it instantly'],
                   ['🏦', 'Connect your bank accounts', 'Track all your money in one place'],
                   ['💰', 'Set a monthly budget', 'Know exactly where your money goes'],
                   ['🎯', 'Define a financial goal', 'Stay motivated and build wealth'],
@@ -539,15 +540,21 @@ export default function OnboardingPage() {
                 <CheckCircle2 className="w-9 h-9 text-green-400" />
               </div>
               <h2 className="text-3xl font-bold text-white mb-3">You&apos;re all set! 🎉</h2>
-              <p className="text-gray-400 mb-8 leading-relaxed">
-                Your account is ready. Start by importing your bank transactions to see your spending patterns instantly.
+              <p className="text-gray-400 mb-6 leading-relaxed">
+                Your account is ready. <strong className="text-white">Your first step is to import your bank transactions</strong> — without them, the dashboard will be empty.
               </p>
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-left space-y-3 mb-8">
-                <p className="text-sm font-semibold text-gray-300">Suggested next steps</p>
+              <button
+                onClick={() => router.push('/imports')}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors mb-4"
+              >
+                📥 Import Transactions — Start Here <ChevronRight className="w-4 h-4" />
+              </button>
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-left space-y-3 mb-6">
+                <p className="text-sm font-semibold text-gray-300">More to explore</p>
                 {[
-                  ['📥', 'Import transactions', 'Upload your bank CSV to get started', '/imports'],
                   ['📊', 'View your dashboard', 'See your financial overview', '/dashboard'],
                   ['🎯', 'Check your goals', 'Track progress toward your targets', '/goals'],
+                  ['💰', 'Set up budgets', 'Adjust your monthly spending limits', '/budgets'],
                 ].map(([icon, title, desc, href]) => (
                   <a
                     key={href}
@@ -566,9 +573,9 @@ export default function OnboardingPage() {
               </div>
               <button
                 onClick={goToDashboard}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 text-sm font-medium transition-colors"
               >
-                Go to Dashboard <ChevronRight className="w-4 h-4" />
+                Skip to Dashboard <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           )}

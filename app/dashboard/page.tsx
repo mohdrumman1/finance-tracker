@@ -403,7 +403,15 @@ export default function DashboardPage() {
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Merchant</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                     <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
+                    <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="relative group inline-flex items-center gap-1 cursor-default">
+                        Confidence
+                        <span className="border border-gray-400 rounded-full w-3.5 h-3.5 inline-flex items-center justify-center text-[10px] leading-none font-normal normal-case tracking-normal text-gray-400">?</span>
+                        <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-md bg-gray-800 text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 text-left font-normal normal-case tracking-normal shadow-lg">
+                          How confident the AI is that the category is correct. High = 80%+, Medium = 60–80%, Low = below 60%.
+                        </span>
+                      </span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
