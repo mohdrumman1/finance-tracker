@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 
+const PUBLIC_PATHS = ['/']
 const PUBLIC_PREFIXES = ['/auth/']
 const NO_SHELL_PREFIXES = ['/auth/', '/onboarding']
 
@@ -13,8 +14,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [_authChecked, setAuthChecked] = useState(false)
 
-  const isPublic = PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
-  const showShell = !NO_SHELL_PREFIXES.some((p) => pathname.startsWith(p))
+  const isPublic = PUBLIC_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
+  const showShell = pathname !== '/' && !NO_SHELL_PREFIXES.some((p) => pathname.startsWith(p))
   const authChecked = isPublic || _authChecked
   const isLoading = !authChecked
 
