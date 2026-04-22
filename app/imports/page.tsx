@@ -242,10 +242,18 @@ export default function ImportsPage() {
               </div>
             </div>
 
-            <p className="text-xs text-gray-500 -mt-3">
-              Download your CSV from your bank&apos;s internet banking under <strong>Transactions</strong> or <strong>Export</strong>.{' '}
-              CommBank: NetBank → Account → Export as CSV. Amex: My Account → Statements → Download.
-            </p>
+            <div className="text-xs text-gray-500 -mt-3 space-y-1">
+              <p>Download your transaction CSV from your bank&apos;s internet banking, then drop it above.</p>
+              <ul className="space-y-0.5 pl-1">
+                <li><strong className="text-gray-700">CommBank:</strong> NetBank → select account → <strong>Export</strong> → CSV</li>
+                <li><strong className="text-gray-700">Westpac:</strong> Overview → Exports and reports → Transactions → Export → CSV</li>
+                <li><strong className="text-gray-700">ANZ:</strong> Select account → Transactions tab → <strong>Download</strong> → CSV</li>
+                <li><strong className="text-gray-700">NAB:</strong> Accounts → Transaction history → <strong>Export</strong> → CSV</li>
+                <li><strong className="text-gray-700">Macquarie:</strong> Select account → click the <strong>CSV download icon</strong> top-right</li>
+                <li><strong className="text-gray-700">ING:</strong> Does not support CSV export — download a PDF statement and convert it using <a href="https://aussiebankstatements.com/ing" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline">aussiebankstatements.com</a></li>
+                <li><strong className="text-gray-700">Amex:</strong> My Account → Transactions → <strong>Refine</strong> → Download → CSV</li>
+              </ul>
+            </div>
 
             {/* File list */}
             {fileEntries.length > 0 && (
