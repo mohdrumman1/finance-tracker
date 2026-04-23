@@ -1,6 +1,7 @@
 import { prisma } from '../db/client'
 import { CsvParser } from './parsers/CsvParser'
-import { ProfileRegistry } from './profiles/ProfileRegistry'
+import { PdfParser } from './parsers/PdfParser'
+import { ProfileRegistry, detectPdfProfile } from './profiles/ProfileRegistry'
 import type { BankProfile } from './profiles/ProfileRegistry'
 import { TransactionNormalizer, NormalizedTransaction } from './normalizer/TransactionNormalizer'
 import { DuplicateDetector } from './duplicate/DuplicateDetector'
@@ -17,20 +18,34 @@ export interface ImportResult {
 
 export class ImportService {
   private csvParser = new CsvParser()
+  private pdfParser = new PdfParser()
   private profileRegistry = new ProfileRegistry()
   private normalizer = new TransactionNormalizer()
   private duplicateDetector = new DuplicateDetector()
   private categorizationService = new CategorizationService()
 
   async previewImport(
-    content: string,
+    content: string | Buffer,
     profileId: string,
-    accountId: string
+    accountId: string,
+    filename = ''
   ): Promise<NormalizedTransaction[]> {
     const t0 = Date.now()
 
-    const profile = this.profileRegistry.getProfile(profileId)
-    const rows = this.csvParser.parse(content, profile.hasHeader !== false)
+    const isPdf = filename.toLowerCase().endsWith('.pdf') || Buffer.isBuffer(content)
+    let profile: BankProfile
+    let rows: ReturnType<CsvParser['parse']>
+
+    if (isPdf) {
+      const pdfResult = await this.pdfParser.parse(content as Buffer)
+      profile = detectPdfProfile(pdfResult.text)
+      const pdfProfile = profile as import('./profiles/ProfileRegistry').PdfBankProfile
+      rows = pdfProfile.extractRows(pdfResult.text)
+    } else {
+      profile = this.profileRegistry.getProfile(profileId)
+      rows = this.csvParser.parse(content as string, profile.hasHeader !== false)
+    }
+
     console.log(`[import] parse: ${rows.length} rows in ${Date.now() - t0}ms`)
 
     const t1 = Date.now()
@@ -80,11 +95,13 @@ export class ImportService {
     )
     console.log(`[import] confirm duplicate check: ${Date.now() - t0}ms`)
 
+    const isPdf = filename.toLowerCase().endsWith('.pdf')
+
     const batch = await prisma.importBatch.create({
       data: {
         accountId,
         filename,
-        fileType: 'csv',
+        fileType: isPdf ? 'pdf' : 'csv',
         bankProfile: profileId,
         rowCount: unique.length,
       },

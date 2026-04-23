@@ -45,8 +45,10 @@ interface FileEntry {
 }
 
 const BANK_PROFILES = [
-  { id: 'commbank', label: 'Commonwealth Bank (CBA)' },
-  { id: 'amex', label: 'American Express' },
+  { id: 'commbank', label: 'Commonwealth Bank (CBA) — CSV' },
+  { id: 'commbank-pdf', label: 'Commonwealth Bank (CBA) — PDF' },
+  { id: 'amex', label: 'American Express — CSV' },
+  { id: 'ing-pdf', label: 'ING — PDF' },
   { id: 'generic', label: 'Generic CSV' },
 ]
 
@@ -100,15 +102,21 @@ export default function ImportsPage() {
   }, [categorizingBatchId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function addFiles(newFiles: FileList | File[]) {
-    const arr = Array.from(newFiles).filter((f) => f.name.endsWith('.csv'))
+    const arr = Array.from(newFiles).filter(
+      (f) => f.name.endsWith('.csv') || f.name.endsWith('.pdf')
+    )
     if (arr.length === 0) {
-      setError('Please select .csv files only')
+      setError('Please select .csv or .pdf files only')
       return
     }
     setError(null)
     setFileEntries((prev) => [
       ...prev,
-      ...arr.map((f) => ({ id: String(nextId++), file: f, profileId: 'commbank' })),
+      ...arr.map((f) => ({
+        id: String(nextId++),
+        file: f,
+        profileId: f.name.endsWith('.pdf') ? 'commbank-pdf' : 'commbank',
+      })),
     ])
   }
 
@@ -272,7 +280,7 @@ export default function ImportsPage() {
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Upload CSV Files</CardTitle>
+            <CardTitle>Upload Bank Files</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             {/* Drop zone */}
@@ -290,27 +298,27 @@ export default function ImportsPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv"
+                accept=".csv,.pdf"
                 multiple
                 className="hidden"
                 onChange={handleFileChange}
               />
               <div className="flex flex-col items-center gap-2">
                 <Upload className="w-10 h-10 text-gray-400" />
-                <p className="font-medium text-gray-700">Drop CSV files here</p>
+                <p className="font-medium text-gray-700">Drop CSV or PDF files here</p>
                 <p className="text-sm text-gray-400">or click to browse — multiple files supported</p>
               </div>
             </div>
 
             <div className="text-xs text-gray-500 -mt-3 space-y-1">
-              <p>Download your transaction CSV from your bank&apos;s internet banking, then drop it above.</p>
+              <p>Download your transaction CSV or PDF from your bank&apos;s internet banking, then drop it above.</p>
               <ul className="space-y-0.5 pl-1">
                 <li><strong className="text-gray-700">CommBank:</strong> NetBank → select account → <strong>Export</strong> → CSV</li>
                 <li><strong className="text-gray-700">Westpac:</strong> Overview → Exports and reports → Transactions → Export → CSV</li>
                 <li><strong className="text-gray-700">ANZ:</strong> Select account → Transactions tab → <strong>Download</strong> → CSV</li>
                 <li><strong className="text-gray-700">NAB:</strong> Accounts → Transaction history → <strong>Export</strong> → CSV</li>
                 <li><strong className="text-gray-700">Macquarie:</strong> Select account → click the <strong>CSV download icon</strong> top-right</li>
-                <li><strong className="text-gray-700">ING:</strong> Does not support CSV export — download a PDF statement and convert it using <a href="https://aussiebankstatements.com/ing" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline">aussiebankstatements.com</a></li>
+                <li><strong className="text-gray-700">ING:</strong> My ING app → <strong>Statements</strong> → download PDF — upload it directly here</li>
                 <li><strong className="text-gray-700">Amex:</strong> My Account → Transactions → <strong>Refine</strong> → Download → CSV</li>
               </ul>
             </div>

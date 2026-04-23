@@ -6,12 +6,13 @@ const importService = new ImportService()
 
 const PROFILE_ACCOUNT_META: Record<string, { name: string; institution: string; accountType: string }> = {
   commbank: { name: 'Commonwealth Bank', institution: 'Commonwealth Bank', accountType: 'transaction' },
+  'commbank-pdf': { name: 'Commonwealth Bank', institution: 'Commonwealth Bank', accountType: 'transaction' },
   amex: { name: 'American Express', institution: 'American Express', accountType: 'credit' },
+  'ing-pdf': { name: 'ING', institution: 'ING', accountType: 'transaction' },
   generic: { name: 'My Bank', institution: 'My Bank', accountType: 'transaction' },
 }
 
 async function resolveAccountId(accountId: string, profileId: string): Promise<string> {
-  // If the caller passed a real account ID, use it
   if (accountId && accountId !== 'default') {
     const exists = await prisma.account.findUnique({ where: { id: accountId } })
     if (exists) return accountId
@@ -19,14 +20,12 @@ async function resolveAccountId(accountId: string, profileId: string): Promise<s
 
   const meta = PROFILE_ACCOUNT_META[profileId] ?? PROFILE_ACCOUNT_META.generic
 
-  // Find an existing account for this institution so each bank stays separate
   const existing = await prisma.account.findFirst({
     where: { institution: meta.institution },
     orderBy: { createdAt: 'asc' },
   })
   if (existing) return existing.id
 
-  // Create a new account for this bank profile
   const created = await prisma.account.create({
     data: {
       name: meta.name,
@@ -55,14 +54,16 @@ export async function POST(request: NextRequest) {
 
     const accountId = await resolveAccountId(rawAccountId, profileId)
 
-    const content = await file.text()
+    const isPdf = file.name.toLowerCase().endsWith('.pdf')
+    const content = isPdf
+      ? Buffer.from(await file.arrayBuffer())
+      : await file.text()
 
     if (mode === 'preview') {
-      const transactions = await importService.previewImport(content, profileId, accountId)
+      const transactions = await importService.previewImport(content, profileId, accountId, file.name)
       return NextResponse.json({ transactions })
     } else {
-      // Confirm: re-parse and save
-      const transactions = await importService.previewImport(content, profileId, accountId)
+      const transactions = await importService.previewImport(content, profileId, accountId, file.name)
       const result = await importService.confirmImport(
         transactions,
         accountId,
