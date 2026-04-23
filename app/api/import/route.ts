@@ -63,13 +63,7 @@ export async function POST(request: NextRequest) {
       const transactions = await importService.previewImport(content, profileId, accountId, file.name)
       return NextResponse.json({ transactions })
     } else {
-      const transactions = await importService.previewImport(content, profileId, accountId, file.name)
-      const result = await importService.confirmImport(
-        transactions,
-        accountId,
-        file.name,
-        profileId
-      )
+      const result = await importService.confirmImport(content, profileId, accountId, file.name)
       return NextResponse.json(result)
     }
   } catch (error) {

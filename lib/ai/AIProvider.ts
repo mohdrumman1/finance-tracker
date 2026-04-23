@@ -28,8 +28,8 @@ export class AIProvider {
   private model: string
 
   constructor() {
-    this.enabled = process.env.AI_FALLBACK_ENABLED === 'true'
     this.apiKey = process.env.OPENROUTER_API_KEY
+    this.enabled = !!this.apiKey && this.apiKey.length > 0
     this.model = process.env.OPENROUTER_MODEL ?? 'mistralai/mistral-7b-instruct'
   }
 

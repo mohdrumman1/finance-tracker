@@ -81,21 +81,42 @@ export class ImportService {
     return normalized
   }
 
+  // Fast confirm: parse → normalize → deduplicate → createMany, no categorization.
+  // Background AI categorizes everything after the response returns.
   async confirmImport(
-    transactions: NormalizedTransaction[],
+    content: string | Buffer,
+    profileId: string,
     accountId: string,
-    filename: string,
-    profileId: string
+    filename: string
   ): Promise<ImportResult> {
     const t0 = Date.now()
 
-    const { unique, duplicates } = await this.duplicateDetector.filter(
-      transactions,
-      accountId
-    )
-    console.log(`[import] confirm duplicate check: ${Date.now() - t0}ms`)
+    const isPdf = filename.toLowerCase().endsWith('.pdf') || Buffer.isBuffer(content)
+    let profile: BankProfile
+    let rows: ReturnType<CsvParser['parse']>
 
-    const isPdf = filename.toLowerCase().endsWith('.pdf')
+    if (isPdf) {
+      const pdfResult = await this.pdfParser.parse(content as Buffer)
+      profile = detectPdfProfile(pdfResult.text)
+      const pdfProfile = profile as import('./profiles/ProfileRegistry').PdfBankProfile
+      rows = pdfProfile.extractRows(pdfResult.text)
+    } else {
+      profile = this.profileRegistry.getProfile(profileId)
+      rows = this.csvParser.parse(content as string, profile.hasHeader !== false)
+    }
+
+    const normalized = rows
+      .map((row) => {
+        try { return this.normalizer.normalize(row, profile, accountId) }
+        catch { return null }
+      })
+      .filter((tx): tx is NormalizedTransaction => tx !== null)
+
+    console.log(`[import] confirm parse+normalize: ${normalized.length} rows in ${Date.now() - t0}ms`)
+
+    const t1 = Date.now()
+    const { unique, duplicates } = await this.duplicateDetector.filter(normalized, accountId)
+    console.log(`[import] confirm dedup: ${duplicates.length} dupes in ${Date.now() - t1}ms`)
 
     const batch = await prisma.importBatch.create({
       data: {
@@ -107,7 +128,7 @@ export class ImportService {
       },
     })
 
-    const t1 = Date.now()
+    const t2 = Date.now()
     await prisma.transaction.createMany({
       data: unique.map((tx) => ({
         accountId: tx.accountId,
@@ -120,26 +141,23 @@ export class ImportService {
         amount: tx.amount,
         currency: tx.currency,
         direction: tx.direction,
-        categoryId: tx.categoryId,
-        subcategoryId: tx.subcategoryId,
+        categoryId: null,
+        subcategoryId: null,
         isRecurring: tx.isRecurring,
         isTransfer: tx.isTransfer,
-        reviewStatus: tx.reviewStatus,
-        confidenceScore: tx.confidenceScore,
+        reviewStatus: 'needs_review',
+        confidenceScore: 0,
       })),
     })
-    console.log(`[import] createMany ${unique.length} txns: ${Date.now() - t1}ms`)
+    console.log(`[import] confirm createMany ${unique.length} txns: ${Date.now() - t2}ms`)
     console.log(`[import] total confirm: ${Date.now() - t0}ms`)
-
-    const needsReviewCount = unique.filter((tx) => tx.reviewStatus === 'needs_review').length
-    const autoCategorizedCount = unique.filter((tx) => tx.reviewStatus === 'auto_categorized').length
 
     return {
       batchId: batch.id,
-      totalRows: transactions.length,
+      totalRows: normalized.length,
       duplicatesSkipped: duplicates.length,
-      needsReviewCount,
-      autoCategorizedCount,
+      needsReviewCount: unique.length,
+      autoCategorizedCount: 0,
       transactions: unique,
     }
   }
