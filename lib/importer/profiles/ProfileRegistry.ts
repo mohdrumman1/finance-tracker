@@ -1,3 +1,5 @@
+import type { ParsedRow } from '../parsers/CsvParser'
+
 export interface BankProfile {
   id: string
   name: string
@@ -16,16 +18,42 @@ export interface BankProfile {
   skipRows?: number
 }
 
+export interface PdfBankProfile extends BankProfile {
+  fileType: 'pdf'
+  transactionLineRegex: RegExp
+  detect: (text: string) => boolean
+  mapMatch: (match: RegExpMatchArray) => ParsedRow
+  extractRows: (text: string) => ParsedRow[]
+}
+
 import { CommbankProfile } from './CommbankProfile'
 import { AmexProfile } from './AmexProfile'
 import { GenericProfile } from './GenericProfile'
+import { CommbankPdfProfile } from './CommbankPdfProfile'
+import { IngPdfProfile } from './IngPdfProfile'
 
-const profiles: BankProfile[] = [CommbankProfile, AmexProfile, GenericProfile]
+const csvProfiles: BankProfile[] = [CommbankProfile, AmexProfile, GenericProfile]
+const pdfProfiles: PdfBankProfile[] = [CommbankPdfProfile, IngPdfProfile]
+
+export function detectPdfProfile(text: string): PdfBankProfile {
+  for (const profile of pdfProfiles) {
+    if (profile.detect(text)) return profile
+  }
+  // Default to CommBank PDF as the most common AU bank format
+  return CommbankPdfProfile
+}
 
 export class ProfileRegistry {
   getProfile(id: string): BankProfile {
-    const profile = profiles.find((p) => p.id === id)
+    const all: BankProfile[] = [...csvProfiles, ...pdfProfiles]
+    const profile = all.find((p) => p.id === id)
     if (!profile) throw new Error(`Unknown bank profile: ${id}`)
+    return profile
+  }
+
+  getPdfProfile(id: string): PdfBankProfile {
+    const profile = pdfProfiles.find((p) => p.id === id)
+    if (!profile) throw new Error(`Unknown PDF bank profile: ${id}`)
     return profile
   }
 
@@ -62,6 +90,6 @@ export class ProfileRegistry {
   }
 
   listAll(): BankProfile[] {
-    return profiles
+    return [...csvProfiles, ...pdfProfiles]
   }
 }
