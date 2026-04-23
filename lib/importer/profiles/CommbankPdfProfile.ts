@@ -34,6 +34,7 @@ export const CommbankPdfProfile: PdfBankProfile = {
     return {
       date: date.trim(),
       description: description.trim(),
+      amount: '',
       debit: isDebit ? amount.replace(/,/g, '') : '0',
       credit: isDebit ? '0' : amount.replace(/,/g, ''),
       balance: balance.replace(/,/g, ''),
