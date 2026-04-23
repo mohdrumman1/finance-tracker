@@ -70,12 +70,12 @@ export async function POST(request: NextRequest) {
           if (pattern) {
             await prisma.merchantRule.upsert({
               where: { pattern },
-              update: { categoryId: result.categoryId, subcategoryId: result.subcategoryId },
+              update: { categoryId: result.categoryId, subcategoryId: result.subcategoryId ?? undefined },
               create: {
                 pattern,
                 patternType: 'exact',
                 categoryId: result.categoryId,
-                subcategoryId: result.subcategoryId,
+                subcategoryId: result.subcategoryId ?? undefined,
                 direction: tx.direction,
                 isUserDefined: false,
                 priority: 0,
