@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         })
 
         // Learn from high-confidence AI results so future imports skip the AI call
-        if (result.confidence >= 0.7) {
+        if (result.confidence >= 0.7 && result.categoryId) {
           const pattern = (tx.merchantName || tx.descriptionNormalized || tx.descriptionRaw)
             .toUpperCase()
             .trim()
@@ -70,12 +70,12 @@ export async function POST(request: NextRequest) {
           if (pattern) {
             await prisma.merchantRule.upsert({
               where: { pattern },
-              update: { categoryId: result.categoryId ?? undefined, subcategoryId: result.subcategoryId ?? undefined },
+              update: { categoryId: result.categoryId, subcategoryId: result.subcategoryId },
               create: {
                 pattern,
                 patternType: 'exact',
-                categoryId: result.categoryId ?? undefined,
-                subcategoryId: result.subcategoryId ?? undefined,
+                categoryId: result.categoryId,
+                subcategoryId: result.subcategoryId,
                 direction: tx.direction,
                 isUserDefined: false,
                 priority: 0,
