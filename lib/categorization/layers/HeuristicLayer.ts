@@ -11,21 +11,23 @@ interface CategoryCache {
   salarySub: Subcategory | null
 }
 
-let categoriesCache: CategoryCache | null = null
+let categoriesPromise: Promise<CategoryCache> | null = null
 
-async function getCategories(): Promise<CategoryCache> {
-  if (!categoriesCache) {
-    const [income, transfers, subscriptions] = await Promise.all([
-      prisma.category.findFirst({ where: { name: 'Income' } }),
-      prisma.category.findFirst({ where: { name: 'Transfers' } }),
-      prisma.category.findFirst({ where: { name: 'Subscriptions' } }),
-    ])
-    const salarySub = income
-      ? await prisma.subcategory.findFirst({ where: { name: 'Salary', categoryId: income.id } })
-      : null
-    categoriesCache = { income, transfers, subscriptions, salarySub }
+function getCategories(): Promise<CategoryCache> {
+  if (!categoriesPromise) {
+    categoriesPromise = (async () => {
+      const [income, transfers, subscriptions] = await Promise.all([
+        prisma.category.findFirst({ where: { name: 'Income' } }),
+        prisma.category.findFirst({ where: { name: 'Transfers' } }),
+        prisma.category.findFirst({ where: { name: 'Subscriptions' } }),
+      ])
+      const salarySub = income
+        ? await prisma.subcategory.findFirst({ where: { name: 'Salary', categoryId: income.id } })
+        : null
+      return { income, transfers, subscriptions, salarySub }
+    })()
   }
-  return categoriesCache
+  return categoriesPromise
 }
 
 export class HeuristicLayer {

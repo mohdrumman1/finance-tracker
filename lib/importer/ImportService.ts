@@ -49,24 +49,20 @@ export class ImportService {
     console.log(`[import] parse: ${rows.length} rows in ${Date.now() - t0}ms`)
 
     const t1 = Date.now()
-    const normalized = (
-      await Promise.all(
-        rows.map(async (row) => {
-          try {
-            const tx = this.normalizer.normalize(row, profile, accountId)
-            const catResult = await this.categorizationService.categorizeFast(tx)
-            tx.categoryId = catResult.categoryId
-            tx.subcategoryId = catResult.subcategoryId
-            tx.confidenceScore = catResult.confidence
-            tx.reviewStatus =
-              catResult.confidence >= 0.6 ? 'auto_categorized' : 'needs_review'
-            return tx
-          } catch {
-            return null
-          }
-        })
-      )
-    ).filter((tx): tx is NormalizedTransaction => tx !== null)
+    const normalized: NormalizedTransaction[] = []
+    for (const row of rows) {
+      try {
+        const tx = this.normalizer.normalize(row, profile, accountId)
+        const catResult = await this.categorizationService.categorizeFast(tx)
+        tx.categoryId = catResult.categoryId
+        tx.subcategoryId = catResult.subcategoryId
+        tx.confidenceScore = catResult.confidence
+        tx.reviewStatus = catResult.confidence >= 0.6 ? 'auto_categorized' : 'needs_review'
+        normalized.push(tx)
+      } catch {
+        // skip unparseable rows
+      }
+    }
     console.log(`[import] normalize+categorize: ${normalized.length} txns in ${Date.now() - t1}ms`)
 
     const t2 = Date.now()

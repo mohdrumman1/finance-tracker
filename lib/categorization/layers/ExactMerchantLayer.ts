@@ -3,19 +3,19 @@ import type { NormalizedTransaction } from '../../importer/normalizer/Transactio
 import type { CategorizationResult } from '../CategorizationService'
 import type { MerchantRule } from '@prisma/client'
 
-let rulesCache: MerchantRule[] | null = null
+let rulesPromise: Promise<MerchantRule[]> | null = null
 let cacheExpiresAt = 0
 const CACHE_TTL = 60_000
 
-async function getExactRules(): Promise<MerchantRule[]> {
-  if (!rulesCache || Date.now() > cacheExpiresAt) {
-    rulesCache = await prisma.merchantRule.findMany({
+function getExactRules(): Promise<MerchantRule[]> {
+  if (!rulesPromise || Date.now() > cacheExpiresAt) {
+    cacheExpiresAt = Date.now() + CACHE_TTL
+    rulesPromise = prisma.merchantRule.findMany({
       where: { patternType: 'exact' },
       orderBy: [{ isUserDefined: 'desc' }, { priority: 'desc' }],
     })
-    cacheExpiresAt = Date.now() + CACHE_TTL
   }
-  return rulesCache
+  return rulesPromise
 }
 
 export class ExactMerchantLayer {
