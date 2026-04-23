@@ -60,6 +60,29 @@ export async function POST(request: NextRequest) {
             reviewStatus: result.confidence >= 0.6 ? 'auto_categorized' : 'needs_review',
           },
         })
+
+        // Learn from high-confidence AI results so future imports skip the AI call
+        if (result.confidence >= 0.7) {
+          const pattern = (tx.merchantName || tx.descriptionNormalized || tx.descriptionRaw)
+            .toUpperCase()
+            .trim()
+            .slice(0, 100)
+          if (pattern) {
+            await prisma.merchantRule.upsert({
+              where: { pattern },
+              update: { categoryId: result.categoryId, subcategoryId: result.subcategoryId },
+              create: {
+                pattern,
+                patternType: 'exact',
+                categoryId: result.categoryId,
+                subcategoryId: result.subcategoryId,
+                direction: tx.direction,
+                isUserDefined: false,
+                priority: 0,
+              },
+            })
+          }
+        }
       })
     )
 
