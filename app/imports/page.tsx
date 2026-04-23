@@ -140,7 +140,13 @@ export default function ImportsPage() {
     formData.append('accountId', 'default')
     formData.append('mode', 'preview')
     const res = await fetch('/api/import', { method: 'POST', body: formData })
-    const data = await res.json()
+    const text = await res.text()
+    let data: { error?: string; transactions?: PreviewTransaction[] }
+    try {
+      data = JSON.parse(text)
+    } catch {
+      throw new Error(`Server error (${res.status}): ${text.slice(0, 300)}`)
+    }
     if (!res.ok) throw new Error(data.error ?? `Preview failed for ${entry.file.name}`)
     const txns: PreviewTransaction[] = data.transactions ?? []
     return txns.map((t) => ({ ...t, _source: entry.file.name }))
@@ -168,7 +174,13 @@ export default function ImportsPage() {
     formData.append('accountId', 'default')
     formData.append('mode', 'confirm')
     const res = await fetch('/api/import', { method: 'POST', body: formData })
-    const data = await res.json()
+    const text = await res.text()
+    let data: { error?: string; transactions?: unknown[]; totalRows?: number; duplicatesSkipped?: number; batchId?: string }
+    try {
+      data = JSON.parse(text)
+    } catch {
+      throw new Error(`Server error (${res.status}): ${text.slice(0, 300)}`)
+    }
     if (!res.ok) throw new Error(data.error ?? `Import failed for ${entry.file.name}`)
     return {
       imported: data.transactions?.length ?? data.totalRows ?? 0,

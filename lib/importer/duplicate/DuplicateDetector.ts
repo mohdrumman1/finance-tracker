@@ -10,12 +10,33 @@ export class DuplicateDetector {
     unique: NormalizedTransaction[]
     duplicates: NormalizedTransaction[]
   }> {
+    if (transactions.length === 0) return { unique: [], duplicates: [] }
+
+    const dates = transactions.map((tx) => tx.transactionDate.getTime())
+    const minDate = startOfDay(new Date(Math.min(...dates)))
+    const maxDate = endOfDay(new Date(Math.max(...dates)))
+
+    // Single query covering the full date range, then match in memory
+    const existing = await prisma.transaction.findMany({
+      where: {
+        accountId,
+        transactionDate: { gte: minDate, lte: maxDate },
+      },
+      select: { transactionDate: true, amount: true, direction: true },
+    })
+
+    const existingKeys = new Set(
+      existing.map(
+        (tx) => `${startOfDay(tx.transactionDate).getTime()}:${tx.amount}:${tx.direction}`
+      )
+    )
+
     const unique: NormalizedTransaction[] = []
     const duplicates: NormalizedTransaction[] = []
 
     for (const tx of transactions) {
-      const isDupe = await this.isDuplicate(tx, accountId)
-      if (isDupe) {
+      const key = `${startOfDay(tx.transactionDate).getTime()}:${tx.amount}:${tx.direction}`
+      if (existingKeys.has(key)) {
         duplicates.push(tx)
       } else {
         unique.push(tx)
@@ -23,27 +44,5 @@ export class DuplicateDetector {
     }
 
     return { unique, duplicates }
-  }
-
-  async isDuplicate(tx: NormalizedTransaction, accountId: string): Promise<boolean> {
-    const dayStart = startOfDay(tx.transactionDate)
-    const dayEnd = endOfDay(tx.transactionDate)
-
-    // Match on date + amount + direction + accountId.
-    // This catches re-imports of the same CSV even if description formatting differs.
-    // direction prevents an income of $X clashing with an expense of $X on the same day.
-    const existing = await prisma.transaction.findFirst({
-      where: {
-        accountId,
-        transactionDate: {
-          gte: dayStart,
-          lte: dayEnd,
-        },
-        amount: tx.amount,
-        direction: tx.direction,
-      },
-    })
-
-    return existing !== null
   }
 }

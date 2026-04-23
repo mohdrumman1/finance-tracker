@@ -1,24 +1,47 @@
 import { prisma } from '../../db/client'
 import type { NormalizedTransaction } from '../../importer/normalizer/TransactionNormalizer'
 import type { CategorizationResult } from '../CategorizationService'
+import type { Category, Subcategory } from '@prisma/client'
 import { subDays } from 'date-fns'
+
+interface CategoryCache {
+  income: Category | null
+  transfers: Category | null
+  subscriptions: Category | null
+  salarySub: Subcategory | null
+}
+
+let categoriesCache: CategoryCache | null = null
+
+async function getCategories(): Promise<CategoryCache> {
+  if (!categoriesCache) {
+    const [income, transfers, subscriptions] = await Promise.all([
+      prisma.category.findFirst({ where: { name: 'Income' } }),
+      prisma.category.findFirst({ where: { name: 'Transfers' } }),
+      prisma.category.findFirst({ where: { name: 'Subscriptions' } }),
+    ])
+    const salarySub = income
+      ? await prisma.subcategory.findFirst({ where: { name: 'Salary', categoryId: income.id } })
+      : null
+    categoriesCache = { income, transfers, subscriptions, salarySub }
+  }
+  return categoriesCache
+}
 
 export class HeuristicLayer {
   async categorize(transaction: NormalizedTransaction): Promise<CategorizationResult | null> {
-    // Rule 1: Large inbound with SALARY or PAYROLL -> Income/Salary
     const desc = transaction.descriptionNormalized || transaction.descriptionRaw.toUpperCase()
+    const { income, transfers, subscriptions, salarySub } = await getCategories()
+
+    // Rule 1: Large inbound with SALARY or PAYROLL -> Income/Salary
     if (
       transaction.direction === 'income' &&
       (desc.includes('SALARY') || desc.includes('PAYROLL'))
     ) {
-      const category = await prisma.category.findFirst({ where: { name: 'Income' } })
-      const subcategory = await prisma.subcategory.findFirst({
-        where: { name: 'Salary', categoryId: category?.id },
-      })
-      if (category) {
+      if (income) {
         return {
-          categoryId: category.id,
-          subcategoryId: subcategory?.id ?? null,
+          categoryId: income.id,
+          subcategoryId: salarySub?.id ?? null,
           confidence: 0.9,
           method: 'heuristic',
           reason: 'Salary/payroll income pattern',
@@ -28,10 +51,9 @@ export class HeuristicLayer {
 
     // Rule 2: Transfer detection
     if (transaction.isTransfer || desc.includes('TRANSFER') || desc.includes(' TFR ')) {
-      const category = await prisma.category.findFirst({ where: { name: 'Transfers' } })
-      if (category) {
+      if (transfers) {
         return {
-          categoryId: category.id,
+          categoryId: transfers.id,
           subcategoryId: null,
           confidence: 0.8,
           method: 'heuristic',
@@ -41,7 +63,6 @@ export class HeuristicLayer {
     }
 
     // Rule 3: Recurring subscription detection
-    // Same merchant, same amount, every ~30 days
     if (transaction.merchantName && transaction.amount > 0) {
       const thirtyDaysAgo = subDays(transaction.transactionDate, 33)
       const twentySevenDaysAgo = subDays(transaction.transactionDate, 27)
@@ -51,24 +72,18 @@ export class HeuristicLayer {
           accountId: transaction.accountId,
           merchantName: transaction.merchantName,
           amount: transaction.amount,
-          transactionDate: {
-            gte: thirtyDaysAgo,
-            lte: twentySevenDaysAgo,
-          },
+          transactionDate: { gte: thirtyDaysAgo, lte: twentySevenDaysAgo },
           direction: 'expense',
         },
       })
 
-      if (similar) {
-        const category = await prisma.category.findFirst({ where: { name: 'Subscriptions' } })
-        if (category) {
-          return {
-            categoryId: category.id,
-            subcategoryId: null,
-            confidence: 0.75,
-            method: 'heuristic',
-            reason: 'Recurring monthly payment detected',
-          }
+      if (similar && subscriptions) {
+        return {
+          categoryId: subscriptions.id,
+          subcategoryId: null,
+          confidence: 0.75,
+          method: 'heuristic',
+          reason: 'Recurring monthly payment detected',
         }
       }
     }

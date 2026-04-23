@@ -27,8 +27,13 @@ export class ImportService {
     profileId: string,
     accountId: string
   ): Promise<NormalizedTransaction[]> {
+    const t0 = Date.now()
+
     const profile = this.profileRegistry.getProfile(profileId)
     const rows = this.csvParser.parse(content, profile.hasHeader !== false)
+    console.log(`[import] parse: ${rows.length} rows in ${Date.now() - t0}ms`)
+
+    const t1 = Date.now()
     const normalized = (
       await Promise.all(
         rows.map(async (row) => {
@@ -47,13 +52,16 @@ export class ImportService {
         })
       )
     ).filter((tx): tx is NormalizedTransaction => tx !== null)
+    console.log(`[import] normalize+categorize: ${normalized.length} txns in ${Date.now() - t1}ms`)
 
-    // Mark duplicates so the preview UI can show which will be skipped
+    const t2 = Date.now()
     const { duplicates } = await this.duplicateDetector.filter(normalized, accountId)
     const duplicateSet = new Set(duplicates)
     for (const tx of normalized) {
       tx.isDuplicate = duplicateSet.has(tx)
     }
+    console.log(`[import] duplicate check: ${duplicates.length} dupes in ${Date.now() - t2}ms`)
+    console.log(`[import] total preview: ${Date.now() - t0}ms`)
 
     return normalized
   }
@@ -64,12 +72,14 @@ export class ImportService {
     filename: string,
     profileId: string
   ): Promise<ImportResult> {
+    const t0 = Date.now()
+
     const { unique, duplicates } = await this.duplicateDetector.filter(
       transactions,
       accountId
     )
+    console.log(`[import] confirm duplicate check: ${Date.now() - t0}ms`)
 
-    // Create import batch
     const batch = await prisma.importBatch.create({
       data: {
         accountId,
@@ -80,36 +90,32 @@ export class ImportService {
       },
     })
 
-    let needsReviewCount = 0
-    let autoCategorizedCount = 0
-    const saved: NormalizedTransaction[] = []
+    const t1 = Date.now()
+    await prisma.transaction.createMany({
+      data: unique.map((tx) => ({
+        accountId: tx.accountId,
+        importBatchId: batch.id,
+        sourceType: tx.sourceType,
+        transactionDate: tx.transactionDate,
+        descriptionRaw: tx.descriptionRaw,
+        descriptionNormalized: tx.descriptionNormalized,
+        merchantName: tx.merchantName,
+        amount: tx.amount,
+        currency: tx.currency,
+        direction: tx.direction,
+        categoryId: tx.categoryId,
+        subcategoryId: tx.subcategoryId,
+        isRecurring: tx.isRecurring,
+        isTransfer: tx.isTransfer,
+        reviewStatus: tx.reviewStatus,
+        confidenceScore: tx.confidenceScore,
+      })),
+    })
+    console.log(`[import] createMany ${unique.length} txns: ${Date.now() - t1}ms`)
+    console.log(`[import] total confirm: ${Date.now() - t0}ms`)
 
-    for (const tx of unique) {
-      await prisma.transaction.create({
-        data: {
-          accountId: tx.accountId,
-          importBatchId: batch.id,
-          sourceType: tx.sourceType,
-          transactionDate: tx.transactionDate,
-          descriptionRaw: tx.descriptionRaw,
-          descriptionNormalized: tx.descriptionNormalized,
-          merchantName: tx.merchantName,
-          amount: tx.amount,
-          currency: tx.currency,
-          direction: tx.direction,
-          categoryId: tx.categoryId,
-          subcategoryId: tx.subcategoryId,
-          isRecurring: tx.isRecurring,
-          isTransfer: tx.isTransfer,
-          reviewStatus: tx.reviewStatus,
-          confidenceScore: tx.confidenceScore,
-        },
-      })
-
-      if (tx.reviewStatus === 'needs_review') needsReviewCount++
-      if (tx.reviewStatus === 'auto_categorized') autoCategorizedCount++
-      saved.push(tx)
-    }
+    const needsReviewCount = unique.filter((tx) => tx.reviewStatus === 'needs_review').length
+    const autoCategorizedCount = unique.filter((tx) => tx.reviewStatus === 'auto_categorized').length
 
     return {
       batchId: batch.id,
@@ -117,7 +123,7 @@ export class ImportService {
       duplicatesSkipped: duplicates.length,
       needsReviewCount,
       autoCategorizedCount,
-      transactions: saved,
+      transactions: unique,
     }
   }
 
