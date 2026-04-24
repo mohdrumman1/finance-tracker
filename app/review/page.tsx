@@ -214,7 +214,7 @@ export default function ReviewPage() {
         <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-blue-400" />
         <span>
           <strong>Confirm &amp; Next</strong> saves the category you selected.{' '}
-          <strong>Skip</strong> moves to the next transaction without saving — you can come back to it.{' '}
+          <strong>Skip</strong> moves to the next transaction without saving - you can come back to it.{' '}
           <strong>Transfer</strong> marks it as a between-account transfer (e.g. topping up savings) and removes it from budget calculations.
         </span>
       </div>

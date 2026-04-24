@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
             <div className="p-4 bg-indigo-600/10 border border-indigo-500/20 rounded-xl">
               <p className="font-medium text-indigo-300 mb-1">Using Google?</p>
               <p className="text-gray-400 text-xs">
-                If you signed up with a Google account, go back and use <strong className="text-white">Continue with Google</strong> — no password needed.
+                If you signed up with a Google account, go back and use <strong className="text-white">Continue with Google</strong> - no password needed.
               </p>
             </div>
 

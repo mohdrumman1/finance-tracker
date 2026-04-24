@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to load financial data' }, { status: 500 })
   }
 
-  const systemPrompt = `You are a friendly, practical personal finance advisor. You have been given aggregated (privacy-preserving) financial data — no individual transaction details, just category totals and merchant summaries.
+  const systemPrompt = `You are a friendly, practical personal finance advisor. You have been given aggregated (privacy-preserving) financial data - no individual transaction details, just category totals and merchant summaries.
 
 ${context}
 
@@ -141,7 +141,7 @@ ${mode === 'report'
 
 Use this structure:
 ## Overview
-Brief summary of the period — total income, total expenses, net savings, savings rate.
+Brief summary of the period - total income, total expenses, net savings, savings rate.
 
 ## Spending Patterns
 Breakdown of the main spending categories with notable trends. Use bullet points.
@@ -150,7 +150,7 @@ Breakdown of the main spending categories with notable trends. Use bullet points
 3–5 specific insights. What stands out? Any unusual spikes? Any positive trends?
 
 ## Recommendations
-Actionable, numbered steps to improve financial health. Be specific — reference actual categories or amounts.
+Actionable, numbered steps to improve financial health. Be specific - reference actual categories or amounts.
 
 ## Questions for You
 End with 2–3 thoughtful questions to better understand the user's goals and context.

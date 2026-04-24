@@ -60,7 +60,7 @@ export class ProfileRegistry {
   detect(headers: string[]): BankProfile | null {
     const normalized = headers.map((h) => h.toLowerCase().trim())
 
-    // CommBank: headerless — first row is data like ["15/04/2026", "-85.14", "Description", "+6034.20"]
+    // CommBank: headerless - first row is data like ["15/04/2026", "-85.14", "Description", "+6034.20"]
     // Detect by checking if first column looks like a date (dd/MM/yyyy)
     if (headers.length >= 3 && /^\d{2}\/\d{2}\/\d{4}$/.test(headers[0]?.trim())) {
       return CommbankProfile

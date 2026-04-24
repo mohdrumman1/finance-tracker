@@ -26,7 +26,7 @@ const features = [
   {
     icon: Brain,
     title: 'AI Auto-Categorisation',
-    description: 'Every transaction is sorted automatically. Uber Eats goes to Eating Out, Woolworths to Groceries — without you lifting a finger.',
+    description: 'Every transaction is sorted automatically. Uber Eats goes to Eating Out, Woolworths to Groceries - without you lifting a finger.',
     color: 'from-pink-500 to-rose-500',
   },
   {
@@ -174,7 +174,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            Import your bank statements, let AI do the categorisation, and see exactly where every dollar goes — without connecting your bank or paying a subscription.
+            Import your bank statements, let AI do the categorisation, and see exactly where every dollar goes - without connecting your bank or paying a subscription.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -388,7 +388,7 @@ export default function LandingPage() {
                       <Check className="w-3 h-3 text-emerald-400" />
                     </span>
                   ) : (
-                    <span className="text-gray-600">—</span>
+                    <span className="text-gray-600">-</span>
                   )}
                 </div>
                 <div className="p-4 flex justify-center">
@@ -397,7 +397,7 @@ export default function LandingPage() {
                       <Check className="w-3 h-3 text-emerald-400/60" />
                     </span>
                   ) : (
-                    <span className="text-gray-600">—</span>
+                    <span className="text-gray-600">-</span>
                   )}
                 </div>
               </div>

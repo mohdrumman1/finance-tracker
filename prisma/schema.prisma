@@ -92,7 +92,7 @@ model MerchantRule {
   categoryId           String
   category             Category @relation(fields: [categoryId], references: [id])
   subcategoryId        String?
-  direction            String?  // income | expense | transfer — null means match any
+  direction            String?  // income | expense | transfer - null means match any
   isUserDefined        Boolean  @default(false)
   priority             Int      @default(0) // higher = checked first
   createdAt            DateTime @default(now())

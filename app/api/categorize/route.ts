@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // Find transactions in this batch with no category yet (fast layers didn't match)
     const pending = await prisma.transaction.findMany({
-      where: { importBatchId: batchId, categoryId: null },
+      where: { importBatchId: batchId, categoryId: null, confidenceScore: { gt: -1 } },
       select: {
         id: true,
         merchantName: true,
@@ -49,7 +49,14 @@ export async function POST(request: NextRequest) {
           reviewStatus: 'needs_review',
         })
 
-        if (!result) return
+        if (!result) {
+          // AI returned nothing - mark as skipped so it isn't retried endlessly
+          await prisma.transaction.update({
+            where: { id: tx.id },
+            data: { reviewStatus: 'needs_review', confidenceScore: -1 },
+          })
+          return
+        }
 
         await prisma.transaction.update({
           where: { id: tx.id },
@@ -87,7 +94,7 @@ export async function POST(request: NextRequest) {
     )
 
     const stillRemaining = await prisma.transaction.count({
-      where: { importBatchId: batchId, categoryId: null },
+      where: { importBatchId: batchId, categoryId: null, confidenceScore: { gt: -1 } },
     })
 
     return NextResponse.json({ processed: pending.length, remaining: stillRemaining })

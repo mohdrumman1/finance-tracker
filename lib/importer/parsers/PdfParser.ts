@@ -5,8 +5,8 @@ export interface PdfParseResult {
 
 export class PdfParser {
   async parse(buffer: Buffer): Promise<PdfParseResult> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfParse = (await import('pdf-parse') as any).default ?? (await import('pdf-parse'))
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pdfParse = require('pdf-parse')
     const result = await pdfParse(buffer)
     return {
       text: result.text,

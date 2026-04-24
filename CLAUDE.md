@@ -1,4 +1,4 @@
-# Monyze — Finance Tracker
+# Monyze - Finance Tracker
 
 Personal finance web app. Next.js 15 + TypeScript, SQLite (local) / Turso (prod), Prisma ORM, Google OAuth, AI categorization via OpenRouter.
 
@@ -26,20 +26,20 @@ You need to connect all the pieces.
 
 ## Implementation Plan
 
-### Step 1 — Upgrade PdfParser
+### Step 1 - Upgrade PdfParser
 
 **File:** `lib/importer/parsers/PdfParser.ts`
 
 Replace the stub with:
 - Keep `parse(buffer: Buffer): Promise<PdfParseResult>` as-is
-- Add `extractLines(text: string): string[]` — splits raw text into non-empty trimmed lines
-- Add `extractTransactionLines(text: string, pattern: RegExp): RegExpMatchArray[]` — runs regex against each line, returns matches
+- Add `extractLines(text: string): string[]` - splits raw text into non-empty trimmed lines
+- Add `extractTransactionLines(text: string, pattern: RegExp): RegExpMatchArray[]` - runs regex against each line, returns matches
 
 The parser stays bank-agnostic. Bank-specific regex lives in profiles.
 
 ---
 
-### Step 2 — PDF bank profile interface
+### Step 2 - PDF bank profile interface
 
 **File:** `lib/importer/profiles/index.ts`
 
@@ -59,7 +59,7 @@ Add a `detectPdfProfile(text: string): PdfBankProfile` function that tries each 
 
 ---
 
-### Step 3 — CommBank PDF profile (PRIORITY — real PDF available)
+### Step 3 - CommBank PDF profile (PRIORITY - real PDF available)
 
 **File:** `lib/importer/profiles/CommbankPdfProfile.ts`
 
@@ -76,7 +76,7 @@ CommBank PDF statement transaction lines look like:
 
 ---
 
-### Step 4 — ING PDF profile
+### Step 4 - ING PDF profile
 
 **File:** `lib/importer/profiles/IngProfile.ts`
 
@@ -92,7 +92,7 @@ ING PDF statement transaction lines look like:
 
 ---
 
-### Step 5 — Wire PdfParser into ImportService
+### Step 5 - Wire PdfParser into ImportService
 
 **File:** `lib/importer/ImportService.ts`
 
@@ -109,11 +109,11 @@ if (filename.endsWith('.pdf')) {
 }
 ```
 
-The normalizer, categorizer, and duplicate detector only care about `ParsedRow[]` — reuse them as-is.
+The normalizer, categorizer, and duplicate detector only care about `ParsedRow[]` - reuse them as-is.
 
 ---
 
-### Step 6 — Update API route for binary PDF uploads
+### Step 6 - Update API route for binary PDF uploads
 
 **File:** `app/api/import/route.ts`
 
@@ -131,7 +131,7 @@ Pass both `content` and `file.name` down to `ImportService`.
 
 ---
 
-### Step 7 — Update UI to accept PDFs
+### Step 7 - Update UI to accept PDFs
 
 **File:** `app/imports/page.tsx`
 
@@ -161,15 +161,15 @@ PDF upload
 
 **Do NOT push to main until all tests pass.**
 
-1. A real CommBank PDF is in `fixtures/commbank-sample.pdf` (gitignored — never commit it)
+1. A real CommBank PDF is in `fixtures/commbank-sample.pdf` (gitignored - never commit it)
 2. Write Vitest unit tests in `tests/pdf-parser.test.ts` covering:
    - CommBank profile regex matches a known transaction line
    - ING profile regex matches a known transaction line
    - `detectPdfProfile` correctly identifies CommBank vs ING
    - Duplicate detection skips rows on second import
-3. Upload the fixture via local dev UI — preview table must show correct dates, amounts, merchants
-4. Confirm import — check DB has rows with `sourceType = 'pdf'`
-5. Run `npm run test` — all existing CSV tests must still pass
+3. Upload the fixture via local dev UI - preview table must show correct dates, amounts, merchants
+4. Confirm import - check DB has rows with `sourceType = 'pdf'`
+5. Run `npm run test` - all existing CSV tests must still pass
 
 ---
 
@@ -177,10 +177,10 @@ PDF upload
 
 | File | Purpose |
 |------|---------|
-| `lib/importer/parsers/PdfParser.ts` | PDF text extractor stub — extend this |
+| `lib/importer/parsers/PdfParser.ts` | PDF text extractor stub - extend this |
 | `lib/importer/parsers/CsvParser.ts` | Reference for ParsedRow interface |
-| `lib/importer/profiles/index.ts` | ProfileRegistry — add PDF detection here |
-| `lib/importer/profiles/CommbankProfile.ts` | Existing CommBank CSV profile — reference for structure |
+| `lib/importer/profiles/index.ts` | ProfileRegistry - add PDF detection here |
+| `lib/importer/profiles/CommbankProfile.ts` | Existing CommBank CSV profile - reference for structure |
 | `lib/importer/ImportService.ts` | Main pipeline orchestrator |
 | `lib/importer/normalizer/TransactionNormalizer.ts` | Reuse unchanged |
 | `lib/importer/duplicate/DuplicateDetector.ts` | Reuse unchanged |
@@ -192,6 +192,6 @@ PDF upload
 
 ## Risks
 
-- Scanned PDFs won't work — `pdf-parse` requires digital (text-layer) PDFs. Bank statements are always digital, so this is fine.
+- Scanned PDFs won't work - `pdf-parse` requires digital (text-layer) PDFs. Bank statements are always digital, so this is fine.
 - CommBank regex is based on the known format. If the PDF sample has a different layout, adjust the regex to match what you see in the extracted text.
-- Don't touch the CSV path — it must keep working exactly as before.
+- Don't touch the CSV path - it must keep working exactly as before.

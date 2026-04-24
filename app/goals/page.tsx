@@ -405,7 +405,7 @@ export default function GoalsPage() {
                   onChange={(e) => updateForm('currentSavedAmount', e.target.value)}
                   placeholder="0"
                 />
-                <p className="text-xs text-gray-400">Enter the amount already saved. This is manually tracked — it won&apos;t auto-sync from transactions.</p>
+                <p className="text-xs text-gray-400">Enter the amount already saved. This is manually tracked - it won&apos;t auto-sync from transactions.</p>
               </div>
             </div>
 

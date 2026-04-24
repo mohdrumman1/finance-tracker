@@ -276,7 +276,7 @@ export default function DashboardPage() {
         {/* Cashflow Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Cashflow — Last 6 Months</CardTitle>
+            <CardTitle>Cashflow - Last 6 Months</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={240}>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Category Breakdown — donut chart */}
+        {/* Category Breakdown - donut chart */}
         <Card>
           <CardHeader>
             <CardTitle>Spending by Category</CardTitle>
@@ -459,7 +459,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2.5">
                 <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: categoryModal.color }} />
                 <h3 className="font-semibold text-gray-900">{categoryModal.name}</h3>
-                <span className="text-sm text-gray-500">— {format(currentStart, 'MMMM yyyy')}</span>
+                <span className="text-sm text-gray-500">- {format(currentStart, 'MMMM yyyy')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Link

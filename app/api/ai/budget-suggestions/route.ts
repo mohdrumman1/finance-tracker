@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const prompt = `You are a financial planning assistant for Australians.
 A person lives in ${city}, Australia.${incomeNote}
 Suggest realistic monthly budget amounts in AUD for these spending categories: ${categories.join(', ')}.
-Base your suggestions on the actual cost of living in ${city} — account for local rent, transport costs, food prices, etc.
+Base your suggestions on the actual cost of living in ${city} - account for local rent, transport costs, food prices, etc.
 Respond ONLY with a valid JSON object where keys are the exact category names provided and values are whole-number AUD amounts.
 Example: {"Groceries": 650, "Dining Out": 280}`
 

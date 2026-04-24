@@ -35,7 +35,7 @@ export class MerchantLearner {
   ): Promise<number> {
     const pattern = merchantName.toUpperCase().trim()
 
-    // Fetch candidates — separate queries avoid OR + NOT driver quirks with better-sqlite3
+    // Fetch candidates - separate queries avoid OR + NOT driver quirks with better-sqlite3
     const byMerchant = await prisma.transaction.findMany({
       where: { merchantName: pattern, reviewStatus: 'needs_review' },
       select: { id: true },

@@ -45,10 +45,10 @@ interface FileEntry {
 }
 
 const BANK_PROFILES = [
-  { id: 'commbank', label: 'Commonwealth Bank (CBA) — CSV' },
-  { id: 'commbank-pdf', label: 'Commonwealth Bank (CBA) — PDF' },
-  { id: 'amex', label: 'American Express — CSV' },
-  { id: 'ing-pdf', label: 'ING — PDF' },
+  { id: 'commbank', label: 'Commonwealth Bank (CBA) - CSV' },
+  { id: 'commbank-pdf', label: 'Commonwealth Bank (CBA) - PDF' },
+  { id: 'amex', label: 'American Express - CSV' },
+  { id: 'ing-pdf', label: 'ING - PDF' },
   { id: 'generic', label: 'Generic CSV' },
 ]
 
@@ -92,7 +92,7 @@ export default function ImportsPage() {
           setCategorizingBatchId(null)
         }
       } catch {
-        // silently stop on error — transactions are already saved
+        // silently stop on error - transactions are already saved
         setCategorizingBatchId(null)
       }
     }
@@ -306,7 +306,7 @@ export default function ImportsPage() {
               <div className="flex flex-col items-center gap-2">
                 <Upload className="w-10 h-10 text-gray-400" />
                 <p className="font-medium text-gray-700">Drop CSV or PDF files here</p>
-                <p className="text-sm text-gray-400">or click to browse — multiple files supported</p>
+                <p className="text-sm text-gray-400">or click to browse - multiple files supported</p>
               </div>
             </div>
 
@@ -318,7 +318,7 @@ export default function ImportsPage() {
                 <li><strong className="text-gray-700">ANZ:</strong> Select account → Transactions tab → <strong>Download</strong> → CSV</li>
                 <li><strong className="text-gray-700">NAB:</strong> Accounts → Transaction history → <strong>Export</strong> → CSV</li>
                 <li><strong className="text-gray-700">Macquarie:</strong> Select account → click the <strong>CSV download icon</strong> top-right</li>
-                <li><strong className="text-gray-700">ING:</strong> My ING app → <strong>Statements</strong> → download PDF — upload it directly here</li>
+                <li><strong className="text-gray-700">ING:</strong> My ING app → <strong>Statements</strong> → download PDF - upload it directly here</li>
                 <li><strong className="text-gray-700">Amex:</strong> My Account → Transactions → <strong>Refine</strong> → Download → CSV</li>
               </ul>
             </div>
@@ -472,7 +472,7 @@ export default function ImportsPage() {
               className="flex items-center justify-between p-4 border-t border-gray-200"
               title={
                 preview.filter((t) => !t.isDuplicate).length === 0 && !importing
-                  ? 'All transactions in this file already exist in your records — nothing new to import.'
+                  ? 'All transactions in this file already exist in your records - nothing new to import.'
                   : undefined
               }
             >
@@ -537,7 +537,7 @@ export default function ImportsPage() {
                   className="h-1.5"
                 />
                 <p className="text-xs text-gray-400 text-center">
-                  You can review transactions now — categories will fill in automatically.
+                  You can review transactions now - categories will fill in automatically.
                 </p>
               </div>
             )}

@@ -39,9 +39,9 @@ interface BudgetSummary {
 }
 
 const PACING_TOOLTIPS: Record<string, string> = {
-  'Ahead of pace': 'You have spent more than expected for this point in the month — you may go over budget.',
+  'Ahead of pace': 'You have spent more than expected for this point in the month - you may go over budget.',
   'On track': 'Your spending rate is where it should be mid-month.',
-  'Under budget': 'You have spent less than expected — trending well under budget.',
+  'Under budget': 'You have spent less than expected - trending well under budget.',
   'Over budget': 'You have already exceeded your budget for this category this month.',
   'Not started': 'No spending recorded in this category yet.',
 }

@@ -668,7 +668,7 @@ function DataControlsTab() {
           <CardTitle className="text-sm font-medium text-red-700">Delete All Data</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">Permanently delete everything — transactions, accounts, categories, budgets, goals. This cannot be undone.</p>
+          <p className="text-sm text-gray-500">Permanently delete everything - transactions, accounts, categories, budgets, goals. This cannot be undone.</p>
           <Button
             variant="destructive"
             onClick={() => setConfirmDeleteAll(true)}
