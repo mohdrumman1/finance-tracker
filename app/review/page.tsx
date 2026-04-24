@@ -148,15 +148,36 @@ export default function ReviewPage() {
     if (!current) return
     setSaving(true)
     try {
-      await fetch(`/api/transactions/${current.id}`, {
+      const merchantName = current.merchantName ?? current.descriptionNormalized ?? current.descriptionRaw
+      const res = await fetch(`/api/transactions/${current.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ direction: 'transfer', reviewStatus: 'reviewed', categoryId: null, subcategoryId: null }),
+        body: JSON.stringify({
+          direction: 'transfer',
+          reviewStatus: 'reviewed',
+          categoryId: null,
+          subcategoryId: null,
+          applyToAll,
+          merchantName,
+        }),
       })
-      const nextTransactions = transactions.filter((_, i) => i !== currentIdx)
-      setTransactions(nextTransactions)
-      setTotalCount((c) => Math.max(0, c - 1))
-      setCurrentIdx(Math.max(0, Math.min(currentIdx, nextTransactions.length - 1)))
+      const resData = await res.json()
+
+      if (applyToAll) {
+        const n = resData.appliedCount ?? 0
+        setApplyToAllBanner(
+          n > 0
+            ? `Marked ${n} other matching transaction${n === 1 ? '' : 's'} as transfer`
+            : 'No other matching transactions found'
+        )
+        setTimeout(() => setApplyToAllBanner(null), 4000)
+        await fetchData()
+      } else {
+        const nextTransactions = transactions.filter((_, i) => i !== currentIdx)
+        setTransactions(nextTransactions)
+        setTotalCount((c) => Math.max(0, c - 1))
+        setCurrentIdx(Math.max(0, Math.min(currentIdx, nextTransactions.length - 1)))
+      }
       window.dispatchEvent(new Event('reviewCountChanged'))
     } catch {
       // ignore
@@ -297,7 +318,7 @@ export default function ReviewPage() {
                 className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
               />
               <span className="text-sm text-gray-700">
-                Apply this category to all matching transactions with the same merchant
+                Apply to all matching transactions with the same merchant
               </span>
             </label>
 

@@ -37,6 +37,25 @@ export async function PATCH(
       }
     }
 
+    // Bulk-mark all same-merchant unreviewed transactions as transfers
+    if (direction === 'transfer' && applyToAll && merchantName) {
+      const result = await prisma.transaction.updateMany({
+        where: {
+          merchantName,
+          reviewStatus: 'needs_review',
+          id: { not: existing.id },
+        },
+        data: {
+          direction: 'transfer',
+          reviewStatus: 'reviewed',
+          categoryId: null,
+          subcategoryId: null,
+          updatedAt: new Date(),
+        },
+      })
+      appliedCount = result.count
+    }
+
     const updated = await prisma.transaction.update({
       where: { id },
       data: {
