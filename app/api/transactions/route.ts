@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     if (direction) where.direction = direction
     if (reviewStatus) where.reviewStatus = reviewStatus
 
-    const [transactions, total] = await Promise.all([
+    const [transactions, total, expenseAggregate] = await Promise.all([
       prisma.transaction.findMany({
         where,
         include: { category: true, subcategory: true, account: true },
@@ -32,6 +32,10 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * limit,
       }),
       prisma.transaction.count({ where }),
+      prisma.transaction.aggregate({
+        where: { ...where, direction: 'expense' },
+        _sum: { amount: true },
+      }),
     ])
 
     return NextResponse.json({
@@ -40,6 +44,7 @@ export async function GET(request: NextRequest) {
       page,
       limit,
       pages: Math.ceil(total / limit),
+      totalExpenseAmount: expenseAggregate._sum.amount ?? 0,
     })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 })

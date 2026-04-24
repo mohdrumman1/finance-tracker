@@ -117,9 +117,7 @@ function TransactionsContent() {
 
       setTransactions(filtered)
       setTotal(data.total ?? 0)
-      // Sum only expenses for the "total spend" when filtering by category/expenses
-      const sum = filtered.reduce((s, t) => s + (t.direction === 'expense' ? t.amount : 0), 0)
-      setTotalAmount(sum)
+      setTotalAmount(data.totalExpenseAmount ?? 0)
     } catch {
       // ignore
     } finally {

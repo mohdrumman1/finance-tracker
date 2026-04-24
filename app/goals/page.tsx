@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, Target, Calendar, TrendingUp, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Target, Calendar, TrendingUp, Pencil, Trash2, PiggyBank } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -88,6 +88,9 @@ export default function GoalsPage() {
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [contributingGoal, setContributingGoal] = useState<Goal | null>(null)
+  const [contributionAmount, setContributionAmount] = useState('')
+  const [contributionSaving, setContributionSaving] = useState(false)
 
   const fetchGoals = useCallback(async () => {
     setLoading(true)
@@ -147,6 +150,28 @@ export default function GoalsPage() {
       fetchGoals()
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  async function handleContribution(e: React.FormEvent) {
+    e.preventDefault()
+    if (!contributingGoal) return
+    const amount = parseFloat(contributionAmount)
+    if (!amount || amount <= 0) return
+    setContributionSaving(true)
+    try {
+      await fetch(`/api/goals/${contributingGoal.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentSavedAmount: contributingGoal.currentSavedAmount + amount,
+        }),
+      })
+      setContributingGoal(null)
+      setContributionAmount('')
+      fetchGoals()
+    } finally {
+      setContributionSaving(false)
     }
   }
 
@@ -252,6 +277,13 @@ export default function GoalsPage() {
                         {typeLabel}
                       </span>
                       <button
+                        onClick={() => { setContributingGoal(goal); setContributionAmount('') }}
+                        className="p-1 rounded text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                        title="Add contribution"
+                      >
+                        <PiggyBank className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={() => openEditDialog(goal)}
                         className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                         title="Edit goal"
@@ -342,6 +374,45 @@ export default function GoalsPage() {
               Delete
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contribution Dialog */}
+      <Dialog open={contributingGoal !== null} onOpenChange={(open) => { if (!open) setContributingGoal(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Contribution</DialogTitle>
+          </DialogHeader>
+          {contributingGoal && (
+            <form onSubmit={handleContribution} className="space-y-4">
+              <p className="text-sm text-gray-500">
+                Adding to <span className="font-medium text-gray-700">{contributingGoal.name}</span>
+                {' — '}currently {fmtCurrency(contributingGoal.currentSavedAmount)} of {fmtCurrency(contributingGoal.targetAmount)}
+              </p>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Amount (AUD)</label>
+                <Input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={contributionAmount}
+                  onChange={(e) => setContributionAmount(e.target.value)}
+                  placeholder="500"
+                  autoFocus
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setContributingGoal(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={contributionSaving || !contributionAmount}>
+                  {contributionSaving ? (
+                    <span className="flex items-center gap-2"><LoadingSpinner size="sm" />Saving...</span>
+                  ) : 'Add'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
