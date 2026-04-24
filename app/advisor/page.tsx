@@ -209,7 +209,7 @@ export default function AdvisorPage() {
         </div>
         <div>
           <h2 className="text-lg font-semibold text-gray-800">AI Finance Advisor</h2>
-          <p className="text-sm text-gray-500">Analyses aggregated summaries - no individual transactions sent</p>
+          <p className="text-sm text-gray-500">Analyses your transactions and spending patterns</p>
         </div>
       </div>
 

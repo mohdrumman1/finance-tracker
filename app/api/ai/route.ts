@@ -86,6 +86,33 @@ async function buildFinancialContext(start: Date, end: Date): Promise<string> {
     .slice(0, 10)
     .map(([name, { total, count }]) => `  ${name}: $${total.toFixed(2)} (${count} transactions)`)
 
+  // Individual transactions (top 500 by amount so the AI sees the most impactful spend)
+  const individualTxns = await prisma.transaction.findMany({
+    where: {
+      transactionDate: { gte: start, lte: end },
+      reviewStatus: { not: 'needs_review' },
+      direction: { in: ['income', 'expense'] },
+    },
+    select: {
+      transactionDate: true,
+      merchantName: true,
+      descriptionNormalized: true,
+      descriptionRaw: true,
+      amount: true,
+      direction: true,
+      category: { select: { name: true } },
+    },
+    orderBy: { amount: 'desc' },
+    take: 500,
+  })
+
+  const txnRows = individualTxns.map((t) => {
+    const name = t.merchantName ?? t.descriptionNormalized ?? t.descriptionRaw
+    const cat = t.category?.name ?? 'Uncategorized'
+    const sign = t.direction === 'income' ? '+' : '-'
+    return `  ${format(t.transactionDate, 'dd MMM yyyy')} | ${name} | ${cat} | ${sign}$${t.amount.toFixed(2)}`
+  })
+
   return `PERIOD: ${format(start, 'dd MMM yyyy')} – ${format(end, 'dd MMM yyyy')}
 
 MONTHLY SUMMARY:
@@ -97,7 +124,10 @@ ${catRows.length > 0 ? catRows.join('\n') : '  No categorized expenses'}
 TOP MERCHANTS BY SPEND:
 ${topMerchants.length > 0 ? topMerchants.join('\n') : '  No merchant data'}
 
-TOTAL PERIOD EXPENSES: $${totalExpenses.toFixed(2)}`
+TOTAL PERIOD EXPENSES: $${totalExpenses.toFixed(2)}
+
+INDIVIDUAL TRANSACTIONS (top 500 by amount, format: date | merchant | category | amount):
+${txnRows.length > 0 ? txnRows.join('\n') : '  No transactions'}`
 }
 
 export async function POST(request: NextRequest) {
@@ -124,7 +154,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to load financial data' }, { status: 500 })
   }
 
-  const systemPrompt = `You are a friendly, practical personal finance advisor. You have been given aggregated (privacy-preserving) financial data - no individual transaction details, just category totals and merchant summaries.
+  const systemPrompt = `You are a friendly, practical personal finance advisor. You have been given the user's actual transaction data including individual transactions, category totals, and merchant summaries.
 
 ${context}
 
