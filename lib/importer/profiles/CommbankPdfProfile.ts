@@ -38,7 +38,7 @@ export const CommbankPdfProfile: PdfBankProfile = {
   },
 
   mapMatch(): ParsedRow {
-    return { date: '', description: '', debit: '0', credit: '0', balance: '' }
+    return { date: '', description: '', amount: '', debit: '0', credit: '0', balance: '' }
   },
 
   extractRows(text: string): ParsedRow[] {
@@ -145,7 +145,7 @@ export const CommbankPdfProfile: PdfBankProfile = {
       }
       const description = descParts.filter(Boolean).join(' ')
 
-      rows.push({ date: formattedDate, description, debit, credit, balance: balance.toFixed(2) })
+      rows.push({ date: formattedDate, description, amount: '', debit, credit, balance: balance.toFixed(2) })
     }
 
     return rows
