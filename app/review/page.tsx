@@ -43,6 +43,7 @@ interface Transaction {
 export default function ReviewPage() {
   const [loading, setLoading] = useState(true)
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [categories, setCategories] = useState<Category[]>([])
   const [currentIdx, setCurrentIdx] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -57,7 +58,7 @@ export default function ReviewPage() {
     setLoading(true)
     try {
       const [txRes, catRes] = await Promise.all([
-        fetch('/api/transactions?reviewStatus=needs_review&limit=100'),
+        fetch('/api/transactions?reviewStatus=needs_review&limit=1000'),
         fetch('/api/categories'),
       ])
       const txData = await txRes.json()
@@ -65,6 +66,7 @@ export default function ReviewPage() {
 
       const txns: Transaction[] = txData.transactions ?? []
       setTransactions(txns)
+      setTotalCount(txData.total ?? txns.length)
       setCategories(Array.isArray(catData) ? catData : [])
 
       if (txns.length > 0) {
@@ -128,6 +130,7 @@ export default function ReviewPage() {
       } else {
         const nextTransactions = transactions.filter((_, i) => i !== currentIdx)
         setTransactions(nextTransactions)
+        setTotalCount((c) => Math.max(0, c - 1))
         const nextIdx = Math.min(currentIdx, nextTransactions.length - 1)
         setCurrentIdx(Math.max(0, nextIdx))
       }
@@ -152,6 +155,7 @@ export default function ReviewPage() {
       })
       const nextTransactions = transactions.filter((_, i) => i !== currentIdx)
       setTransactions(nextTransactions)
+      setTotalCount((c) => Math.max(0, c - 1))
       setCurrentIdx(Math.max(0, Math.min(currentIdx, nextTransactions.length - 1)))
       window.dispatchEvent(new Event('reviewCountChanged'))
     } catch {
@@ -194,10 +198,10 @@ export default function ReviewPage() {
         <div className="flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-amber-500" />
           <h2 className="text-lg font-semibold text-gray-800">Review Queue</h2>
-          <Badge variant="destructive">{transactions.length} remaining</Badge>
+          <Badge variant="destructive">{totalCount} remaining</Badge>
         </div>
         <span className="text-sm text-gray-500">
-          {currentIdx + 1} of {transactions.length}
+          {currentIdx + 1} of {totalCount}
         </span>
       </div>
 
@@ -205,7 +209,7 @@ export default function ReviewPage() {
       <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
         <div
           className="h-full bg-indigo-500 transition-all rounded-full"
-          style={{ width: `${((currentIdx) / transactions.length) * 100}%` }}
+          style={{ width: `${(currentIdx / totalCount) * 100}%` }}
         />
       </div>
 
