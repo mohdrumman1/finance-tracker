@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Search, X, SlidersHorizontal } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, X, SlidersHorizontal, Pencil, Check } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -81,6 +81,11 @@ function TransactionsContent() {
   const [totalAmount, setTotalAmount] = useState(0)
   const [loading, setLoading] = useState(true)
 
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingCategoryId, setEditingCategoryId] = useState<string>('')
+  const [editApplyToAll, setEditApplyToAll] = useState(false)
+  const [savingEditId, setSavingEditId] = useState<string | null>(null)
+
   const range = useMemo(() => getRange(preset), [preset])
 
   // Load categories once
@@ -144,6 +149,44 @@ function TransactionsContent() {
     setDirection('')
     setSearch('')
     setPreset('3m')
+  }
+
+  async function saveCategory(t: Transaction) {
+    setSavingEditId(t.id)
+    try {
+      const merchantName = t.merchantName ?? t.descriptionNormalized ?? t.descriptionRaw
+      await fetch(`/api/transactions/${t.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryId: editingCategoryId || null,
+          merchantName,
+          applyToAll: editApplyToAll,
+          reviewStatus: 'reviewed',
+        }),
+      })
+      if (editApplyToAll) {
+        await fetchTransactions()
+      } else {
+        const newCat = categories.find((c) => c.id === editingCategoryId)
+        setTransactions((prev) =>
+          prev.map((tx) =>
+            tx.id === t.id
+              ? {
+                  ...tx,
+                  categoryId: editingCategoryId || undefined,
+                  category: newCat ? { id: newCat.id, name: newCat.name, color: newCat.color } : undefined,
+                }
+              : tx
+          )
+        )
+      }
+      setEditingId(null)
+    } catch {
+      // ignore
+    } finally {
+      setSavingEditId(null)
+    }
   }
 
   const hasFilters = !!categoryId || !!direction || !!search || preset !== '3m'
@@ -304,16 +347,72 @@ function TransactionsContent() {
                         )}
                       </td>
                       <td className="px-6 py-3">
-                        {t.category ? (
-                          <button
-                            onClick={() => setCategoryId(t.category!.id)}
-                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white hover:opacity-80 transition-opacity"
-                            style={{ backgroundColor: t.category.color }}
-                          >
-                            {t.category.name}
-                          </button>
+                        {editingId === t.id ? (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <Select
+                                value={editingCategoryId || 'none'}
+                                onValueChange={(v) => setEditingCategoryId(v === 'none' ? '' : v)}
+                              >
+                                <SelectTrigger className="h-7 text-xs w-36">
+                                  <SelectValue placeholder="Category..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Uncategorized</SelectItem>
+                                  {categories.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <button
+                                onClick={() => saveCategory(t)}
+                                disabled={!!savingEditId}
+                                className="text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                              >
+                                {savingEditId === t.id ? <LoadingSpinner size="sm" /> : <Check className="w-3.5 h-3.5" />}
+                              </button>
+                              <button
+                                onClick={() => setEditingId(null)}
+                                className="text-gray-400 hover:text-gray-600"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={editApplyToAll}
+                                onChange={(e) => setEditApplyToAll(e.target.checked)}
+                                className="w-3 h-3 rounded border-gray-300 text-indigo-600"
+                              />
+                              <span className="text-xs text-gray-500">Apply to all matching</span>
+                            </label>
+                          </div>
                         ) : (
-                          <span className="text-gray-400 text-xs">Uncategorized</span>
+                          <div className="flex items-center gap-1.5 group">
+                            {t.category ? (
+                              <button
+                                onClick={() => setCategoryId(t.category!.id)}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white hover:opacity-80 transition-opacity"
+                                style={{ backgroundColor: t.category.color }}
+                              >
+                                {t.category.name}
+                              </button>
+                            ) : (
+                              <span className="text-gray-400 text-xs">Uncategorized</span>
+                            )}
+                            <button
+                              onClick={() => {
+                                setEditingId(t.id)
+                                setEditingCategoryId(t.categoryId ?? '')
+                                setEditApplyToAll(false)
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600"
+                              title="Edit category"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                          </div>
                         )}
                       </td>
                       <td className="px-6 py-3 text-right">
