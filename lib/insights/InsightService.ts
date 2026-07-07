@@ -1,6 +1,6 @@
 import { prisma } from '../db/client'
-import { getMonthStart, getMonthEnd } from '../utils/dateUtils'
-import { subMonths, subDays } from 'date-fns'
+import { subMonths } from 'date-fns'
+import { startOfMonthIST, endOfMonthIST, getViewMonth } from '../date-window'
 
 export interface Insight {
   id: string
@@ -13,27 +13,52 @@ export interface Insight {
 }
 
 export class InsightService {
-  async generateInsights(year: number, month: number): Promise<Insight[]> {
+  /**
+   * Generate insights for a given month, scoped to a specific user.
+   *
+   * If no transactions exist for the requested month the service applies the
+   * viewMonth fallback (same logic as the dashboard) so callers always receive
+   * insights for the most recent month with data rather than an empty result.
+   *
+   * @param year   - Calendar year (e.g. 2026).
+   * @param month  - Calendar month 1–12.
+   * @param userId - Prisma User.id used to scope all queries.
+   */
+  async generateInsights(year: number, month: number, userId: string): Promise<Insight[]> {
     const insights: Insight[] = []
-    const start = getMonthStart(year, month)
-    const end = getMonthEnd(year, month)
 
-    const prevDate = subMonths(new Date(year, month - 1, 1), 1)
-    const prevStart = getMonthStart(prevDate.getFullYear(), prevDate.getMonth() + 1)
-    const prevEnd = getMonthEnd(prevDate.getFullYear(), prevDate.getMonth() + 1)
+    // Apply the viewMonth fallback — if the requested month has no data for this
+    // user, shift to the most recent month that does.
+    const requestedDate = new Date(year, month - 1, 1)
+    const { viewMonth } = await getViewMonth(userId, requestedDate)
+    const effectiveYear = viewMonth.getFullYear()
+    const effectiveMonth = viewMonth.getMonth() + 1
 
-    // Get this month's transactions
+    // Use IST-aware boundaries so month boundaries are correct on the UTC server.
+    const start = startOfMonthIST(new Date(effectiveYear, effectiveMonth - 1, 1))
+    const end = endOfMonthIST(new Date(effectiveYear, effectiveMonth - 1, 1))
+
+    const prevDate = subMonths(new Date(effectiveYear, effectiveMonth - 1, 1), 1)
+    const prevStart = startOfMonthIST(prevDate)
+    const prevEnd = endOfMonthIST(prevDate)
+
+    // User-scoped base filter (transactions belong to user via their accounts).
+    const userScope = { account: { userId } }
+
+    // Get this month's transactions (scoped to user).
     const thisMonthtx = await prisma.transaction.findMany({
       where: {
+        ...userScope,
         transactionDate: { gte: start, lte: end },
         reviewStatus: { not: 'needs_review' },
       },
       include: { category: true },
     })
 
-    // Get previous month's transactions
+    // Get previous month's transactions (scoped to user).
     const prevMonthtx = await prisma.transaction.findMany({
       where: {
+        ...userScope,
         transactionDate: { gte: prevStart, lte: prevEnd },
         reviewStatus: { not: 'needs_review' },
       },
@@ -91,9 +116,9 @@ export class InsightService {
       })
     }
 
-    // 3. Any category over budget
+    // 3. Any category over budget (budgets are global, not user-scoped in schema)
     const budgets = await prisma.budget.findMany({
-      where: { year, month, period: 'monthly' },
+      where: { year: effectiveYear, month: effectiveMonth, period: 'monthly' },
       include: { category: true },
     })
 
@@ -116,9 +141,10 @@ export class InsightService {
       }
     }
 
-    // 4. Recurring transaction not yet seen this month
+    // 4. Recurring transaction not yet seen this month (scoped to user)
     const recurringLastMonth = await prisma.transaction.findMany({
       where: {
+        ...userScope,
         isRecurring: true,
         transactionDate: { gte: prevStart, lte: prevEnd },
         direction: 'expense',
@@ -128,6 +154,7 @@ export class InsightService {
     for (const recurring of recurringLastMonth) {
       const thisMonthOccurrence = await prisma.transaction.findFirst({
         where: {
+          ...userScope,
           accountId: recurring.accountId,
           merchantName: recurring.merchantName,
           transactionDate: { gte: start, lte: end },

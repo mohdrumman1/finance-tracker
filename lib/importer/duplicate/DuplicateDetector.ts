@@ -22,12 +22,13 @@ export class DuplicateDetector {
         accountId,
         transactionDate: { gte: minDate, lte: maxDate },
       },
-      select: { transactionDate: true, amount: true, direction: true },
+      select: { transactionDate: true, amount: true },
     })
 
     const existingKeys = new Set(
       existing.map(
-        (tx) => `${startOfDay(tx.transactionDate).getTime()}:${tx.amount}:${tx.direction}`
+        // same-day refund + charge with equal absolute value will collide
+        (tx) => `${startOfDay(tx.transactionDate).getTime()}:${tx.amount}`
       )
     )
 
@@ -35,7 +36,7 @@ export class DuplicateDetector {
     const duplicates: NormalizedTransaction[] = []
 
     for (const tx of transactions) {
-      const key = `${startOfDay(tx.transactionDate).getTime()}:${tx.amount}:${tx.direction}`
+      const key = `${startOfDay(tx.transactionDate).getTime()}:${tx.amount}`
       if (existingKeys.has(key)) {
         duplicates.push(tx)
       } else {

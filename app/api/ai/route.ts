@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/client'
+import { getSession } from '@/lib/auth/session'
 import { format, eachMonthOfInterval, startOfMonth, endOfMonth } from 'date-fns'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
@@ -10,7 +11,7 @@ interface Message {
   content: string
 }
 
-async function buildFinancialContext(start: Date, end: Date): Promise<string> {
+async function buildFinancialContext(userId: string, start: Date, end: Date): Promise<string> {
   // Aggregate by month
   const months = eachMonthOfInterval({ start, end })
   const monthlyRows: string[] = []
@@ -20,6 +21,7 @@ async function buildFinancialContext(start: Date, end: Date): Promise<string> {
     const mEnd = endOfMonth(m)
     const txns: { amount: number; direction: string }[] = await prisma.transaction.findMany({
       where: {
+        account: { userId },
         transactionDate: { gte: mStart, lte: mEnd },
         reviewStatus: { not: 'needs_review' },
         direction: { in: ['income', 'expense'] },
@@ -38,6 +40,7 @@ async function buildFinancialContext(start: Date, end: Date): Promise<string> {
   // Category totals for full period
   const catTxns: { amount: number; categoryId: string | null }[] = await prisma.transaction.findMany({
     where: {
+      account: { userId },
       transactionDate: { gte: start, lte: end },
       reviewStatus: { not: 'needs_review' },
       direction: 'expense',
@@ -67,6 +70,7 @@ async function buildFinancialContext(start: Date, end: Date): Promise<string> {
   // Top merchants
   const merchantTxns: { merchantName: string | null; amount: number }[] = await prisma.transaction.findMany({
     where: {
+      account: { userId },
       transactionDate: { gte: start, lte: end },
       reviewStatus: { not: 'needs_review' },
       direction: 'expense',
@@ -89,6 +93,7 @@ async function buildFinancialContext(start: Date, end: Date): Promise<string> {
   // Individual transactions (top 500 by amount so the AI sees the most impactful spend)
   const individualTxns = await prisma.transaction.findMany({
     where: {
+      account: { userId },
       transactionDate: { gte: start, lte: end },
       reviewStatus: { not: 'needs_review' },
       direction: { in: ['income', 'expense'] },
@@ -131,6 +136,11 @@ ${txnRows.length > 0 ? txnRows.join('\n') : '  No transactions'}`
 }
 
 export async function POST(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
     return NextResponse.json({ error: 'OpenRouter API key not configured' }, { status: 500 })
@@ -149,7 +159,7 @@ export async function POST(request: NextRequest) {
 
   let context: string
   try {
-    context = await buildFinancialContext(start, end)
+    context = await buildFinancialContext(session.userId, start, end)
   } catch {
     return NextResponse.json({ error: 'Failed to load financial data' }, { status: 500 })
   }

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/client'
+import { getSession } from '@/lib/auth/session'
 
 export async function GET(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
@@ -14,7 +20,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') ?? '50')
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {}
+    const where: any = {
+      // Scope to the authenticated user's accounts only.
+      account: { userId: session.userId },
+    }
 
     if (startDate) where.transactionDate = { ...where.transactionDate, gte: new Date(startDate) }
     if (endDate) where.transactionDate = { ...where.transactionDate, lte: new Date(endDate) }

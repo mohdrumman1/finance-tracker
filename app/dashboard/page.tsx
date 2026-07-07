@@ -23,7 +23,8 @@ import { ConfidenceBadge } from '@/components/shared/ConfidenceBadge'
 import { LoadingPage, LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { useRouter } from 'next/navigation'
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
+import { format } from 'date-fns'
+import { startOfMonthIST, endOfMonthIST, subMonthsIST } from '@/lib/date-window'
 
 interface Transaction {
   id: string
@@ -125,23 +126,57 @@ export default function DashboardPage() {
   const [categoryModal, setCategoryModal] = useState<CategoryModal | null>(null)
   const [modalTransactions, setModalTransactions] = useState<Transaction[]>([])
   const [modalLoading, setModalLoading] = useState(false)
-
-  const now = new Date()
-  const currentStart = startOfMonth(now)
-  const currentEnd = endOfMonth(now)
-  const prevStart = startOfMonth(subMonths(now, 1))
-  const prevEnd = endOfMonth(subMonths(now, 1))
+  // Date-agnostic total — used only for the empty-state gate.
+  const [anyTransactionsTotal, setAnyTransactionsTotal] = useState<number | null>(null)
+  // The month anchor used for all card + chart data. May differ from the
+  // current month when the user's most recent transactions are in an older month.
+  const [viewMonth, setViewMonth] = useState<Date>(new Date())
+  const [isFallback, setIsFallback] = useState(false)
 
   useEffect(() => {
+    const now = new Date()
+
     async function fetchAll() {
       try {
+        // ── Phase 1: determine viewMonth ─────────────────────────────────────
+        // Fetch the most recent transaction (no date filter, ordered by date desc).
+        const anyRes = await fetch('/api/transactions?limit=1')
+        const anyData = await anyRes.json()
+
+        const total: number = anyData.total ?? 0
+        setAnyTransactionsTotal(total)
+
+        if (total === 0) {
+          // User has zero transactions — empty-state gate will show import prompt.
+          setLoading(false)
+          return
+        }
+
+        // Derive viewMonth from the most recent transaction date.
+        const mostRecentRaw: string | undefined = anyData.transactions?.[0]?.transactionDate
+        const mostRecentDate = mostRecentRaw ? new Date(mostRecentRaw) : null
+
+        const currentMonthStart = startOfMonthIST(now)
+        const currentMonthEnd = endOfMonthIST(now)
+        const hasCurrentMonthData =
+          !!mostRecentDate &&
+          mostRecentDate >= currentMonthStart &&
+          mostRecentDate <= currentMonthEnd
+
+        const vm = hasCurrentMonthData || !mostRecentDate ? now : mostRecentDate
+        const fallback = vm !== now
+        setViewMonth(vm)
+        setIsFallback(fallback)
+
+        // ── Phase 2: fetch card data and cashflow anchored to viewMonth ───────
+        const vStart = startOfMonthIST(vm)
+        const vEnd = endOfMonthIST(vm)
+        const pStart = startOfMonthIST(subMonthsIST(vm, 1))
+        const pEnd = endOfMonthIST(subMonthsIST(vm, 1))
+
         const [currentRes, previousRes] = await Promise.all([
-          fetch(
-            `/api/transactions?startDate=${currentStart.toISOString()}&endDate=${currentEnd.toISOString()}&limit=200`
-          ),
-          fetch(
-            `/api/transactions?startDate=${prevStart.toISOString()}&endDate=${prevEnd.toISOString()}&limit=200`
-          ),
+          fetch(`/api/transactions?startDate=${vStart.toISOString()}&endDate=${vEnd.toISOString()}&limit=200`),
+          fetch(`/api/transactions?startDate=${pStart.toISOString()}&endDate=${pEnd.toISOString()}&limit=200`),
         ])
 
         const currentData = await currentRes.json()
@@ -150,12 +185,12 @@ export default function DashboardPage() {
         setCurrentTransactions(currentData.transactions ?? [])
         setPreviousTransactions(previousData.transactions ?? [])
 
-        // Build cashflow for last 6 months
-        const months = Array.from({ length: 6 }, (_, i) => subMonths(now, 5 - i))
+        // Build cashflow for the 6 months ending at viewMonth.
+        const months = Array.from({ length: 6 }, (_, i) => subMonthsIST(vm, 5 - i))
         const cashflow = await Promise.all(
           months.map(async (m) => {
-            const start = startOfMonth(m).toISOString()
-            const end = endOfMonth(m).toISOString()
+            const start = startOfMonthIST(m).toISOString()
+            const end = endOfMonthIST(m).toISOString()
             const res = await fetch(`/api/transactions?startDate=${start}&endDate=${end}&limit=500`)
             const data = await res.json()
             const txns: Transaction[] = data.transactions ?? []
@@ -207,9 +242,11 @@ export default function DashboardPage() {
     setCategoryModal({ categoryId, name, color })
     setModalLoading(true)
     setModalTransactions([])
+    const vStart = startOfMonthIST(viewMonth)
+    const vEnd = endOfMonthIST(viewMonth)
     try {
       const res = await fetch(
-        `/api/transactions?categoryId=${categoryId}&startDate=${currentStart.toISOString()}&endDate=${currentEnd.toISOString()}&limit=200`
+        `/api/transactions?categoryId=${categoryId}&startDate=${vStart.toISOString()}&endDate=${vEnd.toISOString()}&limit=200`
       )
       const data = await res.json()
       setModalTransactions(data.transactions ?? [])
@@ -224,7 +261,10 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime())
     .slice(0, 10)
 
-  const hasData = currentTransactions.length > 0 || previousTransactions.length > 0
+  // Use the date-agnostic total as the gate: only show the import empty-state
+  // when the user genuinely has zero transactions, not merely zero in the last
+  // two months.
+  const hasData = (anyTransactionsTotal ?? 0) > 0
 
   if (!hasData) {
     return (
@@ -237,11 +277,20 @@ export default function DashboardPage() {
     )
   }
 
+  const viewStart = startOfMonthIST(viewMonth)
+
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-gray-700">
-        {format(now, 'MMMM yyyy')} Overview
+        {format(viewMonth, 'MMMM yyyy')} Overview
       </h2>
+
+      {/* Fallback banner — shown when the current month has no transactions */}
+      {isFallback && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+          Showing {format(viewMonth, 'MMMM yyyy')} — your most recent activity
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -459,7 +508,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2.5">
                 <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: categoryModal.color }} />
                 <h3 className="font-semibold text-gray-900">{categoryModal.name}</h3>
-                <span className="text-sm text-gray-500">- {format(currentStart, 'MMMM yyyy')}</span>
+                <span className="text-sm text-gray-500">- {format(viewStart, 'MMMM yyyy')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Link

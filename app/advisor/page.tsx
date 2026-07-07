@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { subMonths, startOfDay, endOfDay, format, startOfMonth, endOfMonth } from 'date-fns'
+import { subMonths, startOfDay, endOfDay, format } from 'date-fns'
+import { startOfMonthIST } from '@/lib/date-window'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -29,7 +30,8 @@ function getRange(preset: RangePreset): { start: Date; end: Date } {
   const now = new Date()
   const end = endOfDay(now)
   switch (preset) {
-    case '1m': return { start: startOfMonth(subMonths(now, 1)), end }
+    // startOfMonthIST ensures the boundary is computed in IST, not UTC server time.
+    case '1m': return { start: startOfMonthIST(subMonths(now, 1)), end }
     case '3m': return { start: startOfDay(subMonths(now, 3)), end }
     case '6m': return { start: startOfDay(subMonths(now, 6)), end }
     case '1y': return { start: startOfDay(subMonths(now, 12)), end }
@@ -74,9 +76,36 @@ export default function AdvisorPage() {
   const chatBottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // viewMonth fallback: detect when the selected range has no transactions.
+  const [rangeIsEmpty, setRangeIsEmpty] = useState(false)
+
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, chatLoading])
+
+  // Check whether the selected date range has any transactions. If not, show
+  // the fallback banner so the user knows to switch to a wider range.
+  useEffect(() => {
+    let cancelled = false
+    async function checkRange() {
+      setRangeIsEmpty(false)
+      if (preset === 'all') return
+      try {
+        const res = await fetch(
+          `/api/transactions?limit=1&startDate=${range.start.toISOString()}&endDate=${range.end.toISOString()}`
+        )
+        const data = await res.json()
+        if (!cancelled) {
+          setRangeIsEmpty((data.total ?? 0) === 0)
+        }
+      } catch {
+        // ignore network errors
+      }
+    }
+    checkRange()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preset])
 
   async function streamResponse(
     mode: 'report' | 'chat',
@@ -238,6 +267,14 @@ export default function AdvisorPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* viewMonth fallback banner — shown when selected range has no transactions */}
+      {rangeIsEmpty && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+          No transactions found in this period — your most recent activity may be in an earlier month.
+          Switch to <button className="underline font-medium" onClick={() => applyPreset('all')}>All time</button> to analyse your full history.
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="analysis">

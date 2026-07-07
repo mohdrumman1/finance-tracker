@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/client'
 import { MerchantLearner } from '@/lib/categorization/MerchantLearner'
+import { getSession } from '@/lib/auth/session'
 
 const merchantLearner = new MerchantLearner()
 
@@ -8,6 +9,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { id } = await params
     const body = await request.json()
@@ -21,7 +27,10 @@ export async function PATCH(
       applyToAll,
     } = body
 
-    const existing = await prisma.transaction.findUnique({ where: { id } })
+    // Ensure the transaction belongs to the authenticated user.
+    const existing = await prisma.transaction.findFirst({
+      where: { id, account: { userId: session.userId } },
+    })
     if (!existing) {
       return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
     }
@@ -44,6 +53,8 @@ export async function PATCH(
           merchantName,
           reviewStatus: 'needs_review',
           id: { not: existing.id },
+          // Scope to the user's transactions only
+          account: { userId: session.userId },
         },
         data: {
           direction: 'transfer',

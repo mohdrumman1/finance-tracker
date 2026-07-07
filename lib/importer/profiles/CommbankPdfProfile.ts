@@ -6,17 +6,21 @@ const MONTHS: Record<string, number> = {
   jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
 }
 
-// Line starts a new transaction block
-const DATE_START_RE = /^\d{1,2}(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i
+// Line starts a new transaction block.
+// \s* handles both concatenated ("14Apr") and space-separated ("14 Apr") date formats
+// produced by different pdf-parse rendering modes.
+const DATE_START_RE = /^\d{1,2}\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i
 
 // Two properly comma-formatted amounts at end of line, then CR|DR.
 // Using [\d]{1,3}(?:,\d{3})* requires correct thousands-comma placement,
 // which distinguishes real amounts from run-together reference numbers.
+// \s? between groups handles both concatenated ("55.001,100.00DR") and
+// space-separated ("55.00 1,100.00DR") output from different pdf-parse renderers.
 const AMOUNTS_END_RE =
-  /([\d]{1,3}(?:,\d{3})*\.\d{2})([\d]{1,3}(?:,\d{3})*\.\d{2})(CR|DR)$/i
+  /([\d]{1,3}(?:,\d{3})*\.\d{2})\s?([\d]{1,3}(?:,\d{3})*\.\d{2})\s?(CR|DR)$/i
 
 // Single amount (for opening balance line which has no preceding debit/credit amount)
-const SINGLE_AMOUNT_END_RE = /([\d]{1,3}(?:,\d{3})*\.\d{2})(CR|DR)?$/i
+const SINGLE_AMOUNT_END_RE = /([\d]{1,3}(?:,\d{3})*\.\d{2})\s?(CR|DR)?$/i
 
 export const CommbankPdfProfile: PdfBankProfile = {
   id: 'commbank-pdf',
@@ -50,7 +54,7 @@ export const CommbankPdfProfile: PdfBankProfile = {
     let startYear = new Date().getFullYear()
     for (const line of lines) {
       if (!DATE_START_RE.test(line)) continue
-      const m = line.match(/^\d{1,2}(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(\d{4})/i)
+      const m = line.match(/^\d{1,2}\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{4})/i)
       if (m) { startYear = parseInt(m[1]); break }
     }
 
@@ -72,8 +76,9 @@ export const CommbankPdfProfile: PdfBankProfile = {
     for (const block of blocks) {
       const firstLine = block[0]
 
-      // Opening balance: extract the balance for tracking but skip as a transaction
-      if (/OPENINGBALANCE/i.test(firstLine)) {
+      // Opening balance: extract the balance for tracking but skip as a transaction.
+      // Handle both concatenated ("OPENINGBALANCE") and spaced ("OPENING BALANCE") forms.
+      if (/OPENING\s*BALANCE/i.test(firstLine)) {
         for (let i = block.length - 1; i >= 0; i--) {
           const m = block[i].match(SINGLE_AMOUNT_END_RE)
           if (m) { prevBalance = parseFloat(m[1].replace(/,/g, '')); break }
@@ -81,9 +86,9 @@ export const CommbankPdfProfile: PdfBankProfile = {
         continue
       }
 
-      // Extract date from first line
+      // Extract date from first line - allow optional space between day and month
       const dateMatch = firstLine.match(
-        /^(\d{1,2})(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(\d{4})?/i
+        /^(\d{1,2})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(\d{4})?/i
       )
       if (!dateMatch) continue
 
@@ -115,7 +120,13 @@ export const CommbankPdfProfile: PdfBankProfile = {
 
       let debit = '0'
       let credit = '0'
-      if (prevBalance !== null && balance > prevBalance) {
+      // Use the explicit CR/DR label from the PDF to determine direction.
+      // The previous balance-delta approach (balance > prevBalance) was unreliable for
+      // CommBank CREDIT CARD statements, where spending INCREASES the running balance
+      // (you owe more), causing every purchase to appear as income. CR/DR is always
+      // present in the regex capture and is authoritative regardless of account type.
+      const drCr = amountsMatch[3].toUpperCase()
+      if (drCr === 'CR') {
         credit = txAmount.toFixed(2)
       } else {
         debit = txAmount.toFixed(2)
