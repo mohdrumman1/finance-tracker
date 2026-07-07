@@ -14,7 +14,7 @@ vi.mock('../../lib/db/client', () => ({
   },
 }))
 
-import { HeuristicLayer } from '../../lib/categorization/layers/HeuristicLayer'
+import { HeuristicLayer, clearHeuristicCache } from '../../lib/categorization/layers/HeuristicLayer'
 import { prisma } from '../../lib/db/client'
 import type { NormalizedTransaction } from '../../lib/importer/normalizer/TransactionNormalizer'
 
@@ -42,6 +42,7 @@ describe('HeuristicLayer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    clearHeuristicCache()
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.subcategory.findFirst).mockResolvedValue(null)
   })

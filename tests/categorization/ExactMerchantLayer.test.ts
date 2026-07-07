@@ -8,7 +8,7 @@ vi.mock('../../lib/db/client', () => ({
   },
 }))
 
-import { ExactMerchantLayer } from '../../lib/categorization/layers/ExactMerchantLayer'
+import { ExactMerchantLayer, clearExactRulesCache } from '../../lib/categorization/layers/ExactMerchantLayer'
 import { prisma } from '../../lib/db/client'
 import type { NormalizedTransaction } from '../../lib/importer/normalizer/TransactionNormalizer'
 
@@ -35,6 +35,7 @@ describe('ExactMerchantLayer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    clearExactRulesCache()
   })
 
   it('matches a pattern when description contains it', async () => {

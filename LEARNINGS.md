@@ -1,58 +1,68 @@
-## 2026-07-08 — Pre-existing test failures on main (8 total, reviewer flagged 3)
+## 2026-07-08 — /api/ai window aligned to IST, DuplicateDetector false-positive test added, getViewMonth param renamed
 
-**Tags:** test-failures, pre-existing, categorization, goals, duplicate-detector, ExactMerchantLayer, HeuristicLayer, GoalService
-**Status:** Open
+**Tags:** ai-advisor, IST, timezone, date-window, DuplicateDetector, false-positive, getViewMonth, refactor
+**Status:** Fixed
 
-**Issue:** 8 tests were already failing on clean main before any branch changes. A skeptical senior-dev reviewer flagged 3 of them as potentially introduced by current branch work. All 8 confirmed pre-existing via `git stash push` → `npm test` on clean main → `git stash pop`.
+**Changes applied (all in one commit):**
 
-**Investigation:** Stashed all working-tree changes, ran `npm test`, observed 8 failures, restored stash. None of these failures exist in the branch diff.
+**Task 1 — IST month boundaries in `/api/ai` route:**
+`app/api/ai/route.ts` previously imported `startOfMonth`/`endOfMonth` from `date-fns` (UTC-anchored) for the monthly aggregation loop in `buildFinancialContext`. Replaced with `startOfMonthIST`/`endOfMonthIST` from `lib/date-window.ts` so the AI advisor sees the same month boundaries as the dashboard and InsightService.
+Key diff:
+```diff
+-import { format, eachMonthOfInterval, startOfMonth, endOfMonth } from 'date-fns'
++import { format, eachMonthOfInterval } from 'date-fns'
++import { startOfMonthIST, endOfMonthIST } from '@/lib/date-window'
+ ...
+-    const mStart = startOfMonth(m)
+-    const mEnd = endOfMonth(m)
++    const mStart = startOfMonthIST(m)
++    const mEnd = endOfMonthIST(m)
+```
 
-**Reviewer-flagged failures (all pre-existing):**
+**Task 2 — DuplicateDetector false-positive test:**
+Added test `'flags same-day refund and charge with equal absolute amount as duplicate (known limitation)'` to `tests/importer/DuplicateDetector.test.ts`. Documents that the (date, amount) key introduced in the 2026-07-08 re-key entry will collide a same-day refund and charge with equal absolute value, producing a false-positive duplicate. The test asserts the current (flawed but intentional) behaviour.
 
-1. `tests/categorization/ExactMerchantLayer.test.ts` — "respects direction filter"
-   ```
-   AssertionError: expected undefined to be 'cat-income'
-   at tests/categorization/ExactMerchantLayer.test.ts:87
-   ```
-
-2. `tests/categorization/HeuristicLayer.test.ts` — "identifies transfer transactions"
-   ```
-   AssertionError: expected 'cat-income' to be 'cat-transfers'
-   at tests/categorization/HeuristicLayer.test.ts:88
-   ```
-
-3. `tests/goals/GoalService.test.ts` — "on track flag true when monthly contribution >= required savings"
-   ```
-   AssertionError: expected false to be true
-   at tests/goals/GoalService.test.ts:75
-   ```
-
-**Additional pre-existing failures (not flagged by reviewer):**
-
-4–7. `tests/importer/DuplicateDetector.test.ts` — all 4 tests fail:
-   ```
-   TypeError: prisma.transaction.findMany is not a function
-   at DuplicateDetector.filter (lib/importer/duplicate/DuplicateDetector.ts:20)
-   ```
-   (Prisma mock is missing from the test setup — the test file does not mock `@/lib/db/client`.)
-
-8. `tests/categorization/CategorizationService.test.ts` — "user override rule wins over built-in rules"
-   ```
-   AssertionError: expected 'cat-groceries' to be 'cat-user-defined'
-   at tests/categorization/CategorizationService.test.ts:164
-   ```
-
-**Root cause:** Not diagnosed — these are pre-existing and out of scope for the current branch. The categorization tests suggest priority ordering in `ExactMerchantLayer` / `HeuristicLayer` is broken for direction filtering and transfer detection. The `DuplicateDetector` tests need a Prisma mock. `GoalService` `onTrack` logic appears to compute false when it should be true.
-
-**Fix:** Not applied. Documenting for future investigation.
+**Task 3 — Rename `now` param in `getViewMonth`:**
+`lib/date-window.ts` `getViewMonth(userId, now)` → `getViewMonth(userId, referenceDate)`. JSDoc prose updated. All call sites are positional, so no caller updates required.
 
 **Verify:**
 ```bash
-git stash push --include-untracked && npm test 2>&1 | head -20 && git stash pop
-# Should show the same 8 failures
+npm test
+# 47 passed (47)
+npx tsc --noEmit 2>&1 | grep -v "^tests/"
+# No output (no production TS errors)
 ```
 
-**If it recurs:** These will appear on any clean checkout. Before attributing a test failure to a branch, stash and re-run to confirm it's not pre-existing.
+**If it recurs:** Any new API route that aggregates by month should import from `lib/date-window.ts`, not raw `date-fns`. Search for `startOfMonth\|endOfMonth` in `app/api/` to catch regressions.
+
+---
+
+## 2026-07-08 — Pre-existing test failures on main (8 total — all fixed 2026-07-08)
+
+**Tags:** test-failures, categorization, goals, duplicate-detector, ExactMerchantLayer, HeuristicLayer, GoalService
+**Status:** Fixed
+
+**Issue:** 8 tests were failing on clean main. All 8 are now fixed (see NEW entry above for the fixes applied).
+
+**Original failures and their fixes:**
+
+1. `ExactMerchantLayer.test.ts` — "respects direction filter" → **Root cause:** module-level `rulesPromise` cache persisted across tests; second test got stale mocked rules from first test. **Fix:** exported `clearExactRulesCache()` and called it in `beforeEach`.
+
+2. `HeuristicLayer.test.ts` — "identifies transfer transactions" → **Root cause:** module-level `categoriesPromise` cache persisted; `transfers` was set to `cat-income` from first test's mock, not `cat-transfers` from the third test's mock. **Fix:** exported `clearHeuristicCache()` and called it in `beforeEach`.
+
+3. `GoalService.test.ts` — "on track flag true when monthly contribution >= required savings" → **Root cause:** `computeProgress` uses `new Date()`. Test was written assuming April 2026 (~12 months from targetDate 2027-04-01). Running in July 2026 gives ~9 months, making required ≈ 4444 > 4000 contribution → onTrack false. **Fix:** `vi.setSystemTime(new Date('2026-04-01'))` pinned in `beforeAll`.
+
+4–7. `DuplicateDetector.test.ts` — all 4 tests → **Root cause:** test file lacked `vi.mock('../../lib/db/client')` so `prisma.transaction.findMany` was not a function. **Fix:** added prisma mock to the test file (done in a prior session — the (date, amount) re-key entry).
+
+8. `CategorizationService.test.ts` — "user override rule wins over built-in rules" → **Root cause:** same `rulesPromise` module-level cache as #1; test 1 cached `cat-groceries` rules, test 4's new mock was never called. **Fix:** `clearExactRulesCache()` in `beforeEach`.
+
+**Verify:**
+```bash
+npm test
+# Should show: 47 passed (47)
+```
+
+**If it recurs:** Any new test added to ExactMerchantLayer.test.ts or CategorizationService.test.ts that sets up a different `findMany` mock MUST call `clearExactRulesCache()` in `beforeEach`. Ditto `clearHeuristicCache()` for HeuristicLayer tests. Time-dependent GoalService tests must use `vi.setSystemTime`.
 
 ---
 

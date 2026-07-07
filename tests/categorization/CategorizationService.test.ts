@@ -21,6 +21,7 @@ vi.mock('../../lib/db/client', () => ({
 }))
 
 import { CategorizationService } from '../../lib/categorization/CategorizationService'
+import { clearExactRulesCache } from '../../lib/categorization/layers/ExactMerchantLayer'
 import { prisma } from '../../lib/db/client'
 
 const makeTransaction = (overrides: Partial<NormalizedTransaction> = {}): NormalizedTransaction => ({
@@ -51,6 +52,7 @@ describe('CategorizationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    clearExactRulesCache()
     // Default: no transaction matches for heuristic layer
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue(null)
     // Default: no categories found for AI layer

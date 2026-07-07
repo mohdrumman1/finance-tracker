@@ -100,6 +100,30 @@ describe('DuplicateDetector', () => {
     expect(unique).toHaveLength(2)
   })
 
+  // Known limitation: the (date, amount) re-key introduced on 2026-07-08 (see LEARNINGS.md
+  // "DuplicateDetector re-keyed from (date, amount, direction) to (date, amount)") means a
+  // same-day refund and charge with equal absolute value will collide and the charge will be
+  // falsely flagged as a duplicate of the stored refund (or vice versa).
+  it('flags same-day refund and charge with equal absolute amount as duplicate (known limitation)', async () => {
+    const charge = makeTransaction({
+      transactionDate: new Date('2026-06-01'),
+      amount: 25,
+      direction: 'expense',
+    })
+    // Stored row represents a refund (income) from the same date with the same absolute amount.
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
+      {
+        transactionDate: new Date('2026-06-01'),
+        amount: 25,
+      } as never,
+    ])
+
+    // The detector cannot distinguish charge vs refund because direction is not in the key.
+    const { unique, duplicates } = await detector.filter([charge], accountId)
+    expect(duplicates).toHaveLength(1)
+    expect(unique).toHaveLength(0)
+  })
+
   it('detects re-import as duplicate when direction changed but date and amount match', async () => {
     // Stored transaction was previously mis-classified as income; now re-importing
     // the same bank statement row which is correctly parsed as expense.

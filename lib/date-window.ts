@@ -58,20 +58,20 @@ export interface ViewMonthResult {
 /**
  * Determines which month to display for a given user.
  *
- * - If the user has transactions in the current month: returns `now` (no fallback).
+ * - If the user has transactions in the current month: returns `referenceDate` (no fallback).
  * - If the user has transactions in an earlier month: returns the date of the
  *   most recent transaction and sets isFallback=true.
- * - If the user has zero transactions: returns `now` with isFallback=false
+ * - If the user has zero transactions: returns `referenceDate` with isFallback=false
  *   (the caller's empty-state gate will handle this separately).
  *
  * All month boundaries are computed in IST (Asia/Kolkata).
  *
- * @param userId - The Prisma User.id to scope the query to (via Account).
- * @param now    - The reference "today" (inject for testability).
+ * @param userId        - The Prisma User.id to scope the query to (via Account).
+ * @param referenceDate - The reference "today" (inject for testability).
  */
 export async function getViewMonth(
   userId: string,
-  now: Date
+  referenceDate: Date
 ): Promise<ViewMonthResult> {
   const mostRecent = await prisma.transaction.findFirst({
     where: { account: { userId } },
@@ -83,16 +83,16 @@ export async function getViewMonth(
 
   if (!mostRecentTxDate) {
     // No transactions at all — caller handles empty state
-    return { viewMonth: now, isFallback: false, mostRecentTxDate: null }
+    return { viewMonth: referenceDate, isFallback: false, mostRecentTxDate: null }
   }
 
-  const currentMonthStart = startOfMonthIST(now)
-  const currentMonthEnd = endOfMonthIST(now)
+  const currentMonthStart = startOfMonthIST(referenceDate)
+  const currentMonthEnd = endOfMonthIST(referenceDate)
   const hasCurrentMonthData =
     mostRecentTxDate >= currentMonthStart && mostRecentTxDate <= currentMonthEnd
 
   if (hasCurrentMonthData) {
-    return { viewMonth: now, isFallback: false, mostRecentTxDate }
+    return { viewMonth: referenceDate, isFallback: false, mostRecentTxDate }
   }
 
   // Fall back to the most recent month with data

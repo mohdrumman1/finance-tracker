@@ -7,6 +7,12 @@ let rulesPromise: Promise<MerchantRule[]> | null = null
 let cacheExpiresAt = 0
 const CACHE_TTL = 60_000
 
+/** Clears the module-level rule cache. Call in test beforeEach to ensure mock isolation. */
+export function clearExactRulesCache(): void {
+  rulesPromise = null
+  cacheExpiresAt = 0
+}
+
 function getExactRules(): Promise<MerchantRule[]> {
   if (!rulesPromise || Date.now() > cacheExpiresAt) {
     cacheExpiresAt = Date.now() + CACHE_TTL

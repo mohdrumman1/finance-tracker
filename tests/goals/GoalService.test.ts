@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest'
 
 vi.mock('../../lib/db/client', () => ({
   prisma: {
@@ -33,6 +33,17 @@ const makeGoal = (overrides = {}) => ({
 
 describe('GoalService', () => {
   const service = new GoalService()
+
+  // Pin time to 2026-04-01 so month calculations are deterministic.
+  // Tests were written assuming "now ≈ April 2026" (12 months before targetDate of 2027-04-01).
+  beforeAll(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01'))
+  })
+
+  afterAll(() => {
+    vi.useRealTimers()
+  })
 
   beforeEach(() => {
     vi.clearAllMocks()

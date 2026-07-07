@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/client'
 import { getSession } from '@/lib/auth/session'
-import { format, eachMonthOfInterval, startOfMonth, endOfMonth } from 'date-fns'
+import { format, eachMonthOfInterval } from 'date-fns'
+import { startOfMonthIST, endOfMonthIST } from '@/lib/date-window'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'google/gemini-2.0-flash-001'
@@ -17,8 +18,8 @@ async function buildFinancialContext(userId: string, start: Date, end: Date): Pr
   const monthlyRows: string[] = []
 
   for (const m of months) {
-    const mStart = startOfMonth(m)
-    const mEnd = endOfMonth(m)
+    const mStart = startOfMonthIST(m)
+    const mEnd = endOfMonthIST(m)
     const txns: { amount: number; direction: string }[] = await prisma.transaction.findMany({
       where: {
         account: { userId },

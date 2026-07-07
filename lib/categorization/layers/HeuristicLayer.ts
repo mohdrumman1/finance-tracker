@@ -13,6 +13,11 @@ interface CategoryCache {
 
 let categoriesPromise: Promise<CategoryCache> | null = null
 
+/** Clears the module-level categories cache. Call in test beforeEach to ensure mock isolation. */
+export function clearHeuristicCache(): void {
+  categoriesPromise = null
+}
+
 function getCategories(): Promise<CategoryCache> {
   if (!categoriesPromise) {
     categoriesPromise = (async () => {
