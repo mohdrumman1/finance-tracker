@@ -1,6 +1,7 @@
 import { prisma } from '../db/client'
 import { subMonths } from 'date-fns'
-import { startOfMonthIST, endOfMonthIST, getViewMonth } from '../date-window'
+import { startOfMonthIST, endOfMonthIST } from '../date-window'
+import { getViewMonth } from '../db/view-month'
 
 export interface Insight {
   id: string

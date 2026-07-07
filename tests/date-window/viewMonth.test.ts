@@ -1,7 +1,8 @@
 /**
  * tests/date-window/viewMonth.test.ts
  *
- * Tests the getViewMonth fallback logic from lib/date-window.ts.
+ * Tests the getViewMonth fallback logic from lib/db/view-month.ts.
+ * (Moved from lib/date-window.ts to keep date-window client-safe.)
  *
  * Scenario: a user whose most recent transactions are in May 2026.
  * When `now` is 2026-07-07 (July has no data), getViewMonth should
@@ -21,7 +22,7 @@ vi.mock('../../lib/db/client', () => ({
   },
 }))
 
-import { getViewMonth } from '../../lib/date-window'
+import { getViewMonth } from '../../lib/db/view-month'
 import { prisma } from '../../lib/db/client'
 
 describe('getViewMonth', () => {

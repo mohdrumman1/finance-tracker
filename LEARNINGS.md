@@ -1,3 +1,27 @@
+## 2026-07-08 — Vercel build failed: better-sqlite3 pulled into webpack bundle via db/client transitive import
+
+**Tags:** vercel, build, webpack, better-sqlite3, prisma, client-component, date-window, serverExternalPackages
+**Status:** Fixed
+
+**Issue:** Vercel build failed with `Module not found: Can't resolve 'fs'` tracing through:
+`better-sqlite3/lib/database.js → @prisma/adapter-better-sqlite3/dist/index.mjs → lib/db/client.ts → lib/date-window.ts → app/advisor/page.tsx`
+
+**Root cause:** `lib/db/client.ts` has a top-level static `import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'`. Both `app/advisor/page.tsx` and `app/dashboard/page.tsx` are `'use client'` components that import `startOfMonthIST` from `lib/date-window.ts`. That module had a top-level `import { prisma } from './db/client'` (needed for `getViewMonth`), creating a transitive dependency on `better-sqlite3` in the **client** bundle. `serverExternalPackages` in `next.config.ts` only protects server bundles — it has no effect on the client webpack pass, which does not support `fs`.
+
+**Investigation:** Error trace pointed at `advisor/page.tsx`. Confirmed it has `'use client'`. Confirmed `date-window.ts` imported `prisma` at the top level for `getViewMonth`. This is what pulled the whole DB adapter chain into the browser bundle.
+
+**Fix:** Split `lib/date-window.ts`:
+- Removed `import { prisma }` and the `getViewMonth`/`ViewMonthResult` exports from `lib/date-window.ts` (file is now client-safe — only pure date helpers).
+- Created `lib/db/view-month.ts` (server-only) containing `ViewMonthResult` and `getViewMonth`, importing `prisma` and the date helpers it needs.
+- Updated `lib/insights/InsightService.ts`: added `import { getViewMonth } from '../db/view-month'`.
+- Updated `tests/date-window/viewMonth.test.ts`: changed import to `../../lib/db/view-month`.
+
+**Verify:** `npm run build` → must compile without `fs` errors; `npm test` → 47/47 pass.
+
+**If it recurs:** A `'use client'` component that transitively imports `lib/db/client.ts` will reproduce this. Use `grep -rn "from.*db/client" app/` to check. Any file reachable from a client component must not import `prisma` or any Node-native adapter. Consider adding `import 'server-only'` at the top of `lib/db/client.ts` to get an early build error rather than a confusing webpack `fs` trace.
+
+---
+
 ## 2026-07-08 — /api/ai window aligned to IST, DuplicateDetector false-positive test added, getViewMonth param renamed
 
 **Tags:** ai-advisor, IST, timezone, date-window, DuplicateDetector, false-positive, getViewMonth, refactor
