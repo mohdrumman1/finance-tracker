@@ -1,3 +1,66 @@
+## 2026-07-08 — 28 CommBank income rows were retail purchases mis-labeled by pre-CR/DR importer; script skipped them due to reviewStatus=reviewed guard
+
+**Tags:** commbank, income, expense, reclassify, reviewStatus, reviewed, mis-label, importer, credit-card
+**Status:** Fixed
+
+**Issue:** May 2026 income showed $199, June 2026 income showed $264 — all fake. 28 rows were obvious retail purchases (Woolworths, Kmart, Optus, Amazon, McDonald's, etc.) stored with `direction='income'` and `reviewStatus='reviewed'`.
+
+**Investigation:** The `reclassify-may-june.ts` script (run 2026-07-06/07) correctly identified the mis-labeled rows but whitelisted only `reviewStatus IN ('pending', 'auto_categorized')`. These 28 rows had already been auto-marked `reviewed` by the auto-categorizer before the script ran, so they were reported in the "human-reviewed, skipping" bucket and left unchanged.
+
+**Root cause:** Pre-CR/DR PDF importer (before the `amountsMatch[3]` fix in the 2026-07-06 entry) set all CommBank credit-card purchases as `direction='income'`. The auto-categorizer subsequently marked them `reviewed`. The reclassify script's `reviewStatus` guard correctly protected genuinely human-reviewed rows, but incorrectly left these auto-promoted rows untouched.
+
+**Fix:** Flipped all 28 rows in-place with a targeted UPDATE on explicit IDs:
+- `direction`: `income` → `expense`
+- `reviewStatus`: `reviewed` → `needs_review`
+- Pre-change snapshot: `scripts/pre-fix-income-flip-2026-07-07T21-15-59-008Z.json`
+- Script used: `scripts/fix-accounts-and-income.ts --apply`
+
+**Verify:**
+```bash
+# Run against prod (via script) — should show 0 income rows:
+set -a; source .env.local; set +a
+npx tsx -e "
+const { PrismaClient } = require('@prisma/client')
+const { PrismaLibSql } = require('@prisma/adapter-libsql')
+const adapter = new PrismaLibSql({ url: process.env.DATABASE_URL, authToken: process.env.TURSO_AUTH_TOKEN })
+const prisma = new PrismaClient({ adapter })
+prisma.transaction.count({ where: { accountId: 'cmoalo3y4000004i8i3ktez5x', direction: 'income', reviewStatus: 'reviewed', transactionDate: { gte: new Date('2026-04-30T18:30:00Z'), lt: new Date('2026-06-30T18:30:00Z') } } }).then(n => { console.log('income+reviewed count:', n); prisma.\$disconnect() })
+"
+# Expected output: income+reviewed count: 0
+```
+
+**If it recurs:** Any new statement re-import for CommBank credit-card should use the CR/DR-marker importer (post-2026-07-06 fix). Watch for `reviewed` status set by the auto-categorizer on freshly imported rows — if the categorizer is re-run before a manual reclassify pass, rows get promoted to `reviewed` and the reclassify guard will skip them again. Either widen the guard or run reclassify before categorization.
+
+---
+
+## 2026-07-08 — Account.userId was NULL on all rows; auth-scoped queries returned empty after multi-tenant fix
+
+**Tags:** account, userId, backfill, auth, session, multi-tenant, dashboard, api, empty
+**Status:** Fixed
+
+**Issue:** Dashboard showed "No transactions yet" and all API calls to `/api/transactions` and `/api/accounts` returned 0 rows for the authenticated user, despite 200+ transactions existing in Turso. Second user `rumman.formaai@gmail.com` was created 2026-07-03 (after original diagnosis which assumed 1 user).
+
+**Investigation:** All 5 `Account` rows had `userId=NULL`. The `account.userId` column was added to the schema (and the `account: { userId: session.userId }` scope was added to `/api/transactions`) but the existing rows were never backfilled. Prisma's `account: { userId: session.userId }` join condition returns 0 rows when `userId IS NULL`.
+
+**Root cause:** Legacy accounts created before the `userId` column was populated. The `/api/accounts` route added `WHERE userId = session.userId` via Prisma but the existing rows all had `userId=NULL`, so they were invisible to the scoped queries.
+
+**Fix:** Backfilled with a single Prisma `updateMany`:
+```
+UPDATE Account SET userId = 'cmoahqc4l000004jrfmslywbm' WHERE userId IS NULL
+```
+5 accounts updated. Pre-change snapshot: `scripts/pre-fix-accounts-2026-07-07T21-15-59-008Z.json`.
+Script: `scripts/fix-accounts-and-income.ts --apply`
+
+**Verify:**
+```bash
+# All accounts should have the userId set:
+# SELECT id, name, userId FROM Account  →  all 5 rows show cmoahqc4l000004jrfmslywbm
+```
+
+**If it recurs:** Check whether the new signup/onboarding path writes `userId` on `Account` creation (it does — `app/api/accounts/route.ts` POST sets `userId: session.userId`). Only legacy rows created before this column was added will be NULL. If a new Account row appears with `userId=NULL`, it means a code path creates accounts without going through the API route (e.g. a seed script or direct DB insert).
+
+---
+
 ## 2026-07-08 — Vercel build failed: better-sqlite3 pulled into webpack bundle via db/client transitive import
 
 **Tags:** vercel, build, webpack, better-sqlite3, prisma, client-component, date-window, serverExternalPackages
