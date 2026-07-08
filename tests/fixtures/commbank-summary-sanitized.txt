@@ -1,0 +1,351 @@
+                                                                               Account Number     062111 99999999
+                                                                               Page                       1 of 6
+
+
+ A B TESTUSER
+ 1 TEST ST
+ TESTTOWN NSW Australia 2000
+
+
+
+09 July 2026
+
+
+Dear A B TESTUSER,
+Here’s your account information and a list of transactions from 01/05/26-08/07/26.
+Account name               A B TESTUSER
+BSB                                 062111
+Account number            99999999
+Account type                 Smart Access
+Date opened                   28/01/2018
+
+Date              Transaction details                                                            Amount              Balance
+01 May 2026       CHARITY ORG MAYFIELD AU                                              -$10.00               $72.88
+01 May 2026       Direct Debit 000488 NIB                                                         -$37.96               $34.92
+                  xxxxxxxx
+03 May 2026       Fast Transfer From Test User                                                $350.00              $384.92
+                  Alex pay
+03 May 2026       Transfer To Jane                                                              -$22.53             $362.39
+                  CommBank App food
+04 May 2026       Transfer to other Bank NetBank                                                -$215.00              $147.39
+                  Alex Rent
+04 May 2026       Transfer from xx1111 CommBank app                                              $200.00              $347.39
+04 May 2026       Transfer to xx2222 CommBank app                                               -$100.00              $247.39
+04 May 2026       Fast Transfer From JOHN SMITH                                         $22.00             $269.39
+                  to PayID Phone
+                  Electricity bill
+04 May 2026       Fast Transfer From JANE DOE                                                $22.00             $291.39
+                  Internet
+04 May 2026       ALDI STORES EDGEWORTH NSWAU                                                     -$30.21             $261.18
+05 May 2026       Fast Transfer From Test User                                              $3,300.00            $3,561.18
+                  Money
+05 May 2026       KFC Cameron Park Cameron Park AU AUS                                            -$10.00           $3,551.18
+                  Card xx0000
+                  Value Date: 02/05/2026
+05 May 2026       Fast Transfer From ALICE TEST                                         $22.00           $3,573.18
+                  to PayID Phone
+                  Internet from Andy
+05 May 2026       Direct Debit 000517 AMERICAN EXPRESS                                        -$3,292.23              $280.95
+                  376000000000001
+
+
+
+
+
+
+
+
+Created 09/07/26 06:26am (Sydney/Melbourne time)
+While this letter is accurate at the time it’s produced,
+we’re not responsible for any reliance on this information.                                                Transaction Summary v1.0.5
+                                                                             Account Number     062111 99999999
+                                                                             Page                       2 of 6
+
+
+
+
+Date             Transaction details                                                         Amount               Balance
+06 May 2026      ULTRA EDGEWORTH EDGEWORTH AUS                                                 -$78.06            $202.89
+                 Card xx0000
+                 Value Date: 04/05/2026
+07 May 2026      ALDI STORES EDGEWORTH NSWAU                                                   -$22.87            $180.02
+08 May 2026      CHARITY ORG MAYFIELD AU                                            -$10.00            $170.02
+08 May 2026      Transfer from xx3333 CommBank app                                          $1,650.00           $1,820.02
+08 May 2026      Transfer to xx1111 CommBank app                                           -$1,650.00             $170.02
+09 May 2026      ALDI STORES EDGEWORTH NSWAU                                                   -$42.66            $127.36
+10 May 2026      Transfer To John Smith                                                   -$7.00            $120.36
+                 CommBank App waffles
+10 May 2026      ALDI STORES WARNERS BAY NSWAU                                                 -$41.09              $79.27
+10 May 2026      Fast Transfer From Test User                                              $500.00             $579.27
+                 Money
+11 May 2026      Transfer to other Bank NetBank                                              -$215.00             $364.27
+                 Alex Rent
+12 May 2026      KFC Cameron Park Cameron Park AU AUS                                          -$10.00            $354.27
+                 Card xx0000
+                 Value Date: 08/05/2026
+12 May 2026      Transfer to xx2222 CommBank app                                             -$100.00             $254.27
+14 May 2026      Salary 20150 NET PAY CL                                                    $5,561.39           $5,815.66
+                 26339
+15 May 2026      Transfer To Investment Acc                                               -$4,605.71           $1,209.95
+                 CommBank App money
+15 May 2026      CHARITY ORG MAYFIELD AU                                            -$10.00          $1,199.95
+15 May 2026      Direct Debit 000488 NIB                                                       -$37.96          $1,161.99
+                 xxxxxxxx
+15 May 2026      Direct Debit 527170 Vanguard99999999                                      -$1,000.00             $161.99
+                 xxxxxxx
+16 May 2026      KFC Cameron Park Cameron Park AU AUS                                           -$9.95            $152.04
+                 Card xx0000
+                 Value Date: 14/05/2026
+17 May 2026      Fast Transfer From Test User                                              $500.00             $652.04
+                 Money
+17 May 2026      ALDI STORES EDGEWORTH NSWAU                                                   -$57.80            $594.24
+18 May 2026      Transfer to other Bank NetBank                                              -$215.00             $379.24
+                 Alex Rent
+19 May 2026      KFC Raymond Terrace Raymond Terra AU AUS                                       -$9.95            $369.29
+                 Card xx0000
+                 Value Date: 17/05/2026
+20 May 2026      MED*ALDIMOBILE 1300989000 AU AUS                                              -$23.00            $346.29
+                 Card xx0000
+                 Value Date: 18/05/2026
+Created 09/07/26 06:26am (Sydney/Melbourne time)
+While this letter is accurate at the time it’s produced,
+we’re not responsible for any reliance on this information.                                             Transaction Summary v1.0.5
+                                                                              Account Number     062111 99999999
+                                                                              Page                       3 of 6
+
+
+
+
+Date             Transaction details                                                           Amount               Balance
+22 May 2026      CHARITY ORG MAYFIELD AU                                             -$10.00             $336.29
+24 May 2026      Transfer To Charity Org                                        -$85.00             $251.29
+                 CommBank App eid al adha
+24 May 2026      Fast Transfer From Test User                                                $500.00             $751.29
+                 Money
+24 May 2026      Transfer To John Smith                                                   -$20.00             $731.29
+                 CommBank App car wash stuff
+24 May 2026      GLENDALE FOOD PTY LT GLENDALE NSWAU                                            -$26.20             $705.09
+25 May 2026      Transfer to other Bank NetBank                                                -$215.00             $490.09
+                 Alex Rent
+25 May 2026      Transfer from xx3333 CommBank app                                              $150.00             $640.09
+25 May 2026      Transfer To A B Testuser                                             -$150.00             $490.09
+                 CommBank App money
+25 May 2026      Transfer To John Smith                                                     -$5.00            $485.09
+                 CommBank App food
+27 May 2026      Fast Transfer From JOHN SMITH                                        $20.00             $505.09
+                 to PayID Phone
+                 Internet
+27 May 2026      Fast Transfer From JOHN SMITH                                        $20.00             $525.09
+                 to PayID Phone
+                 Internet
+27 May 2026      Transfer To Mike Test                                                      -$350.00             $175.09
+                 CommBank App tv
+29 May 2026      Direct Debit 000488 NIB                                                        -$37.96             $137.13
+                 xxxxxxxx
+30 May 2026      Transfer from xx1111 CommBank app                                              $300.00             $437.13
+30 May 2026      Transfer To Jane                                                            -$300.00             $137.13
+                 CommBank App wedding
+30 May 2026      Fast Transfer From JANE DOE                                              $150.00             $287.13
+                 Thendi
+31 May 2026      Fast Transfer From Test User                                                $400.00             $687.13
+                 Money
+31 May 2026      ALDI STORES EDGEWORTH NSWAU                                                    -$70.05             $617.08
+01 Jun 2026      Transfer to other Bank NetBank                                                -$215.00             $402.08
+                 Alex Rent
+01 Jun 2026      Transfer from xx1111 CommBank app                                           $4,610.00            $5,012.08
+01 Jun 2026      Transfer To acme travel pty ltd                                            -$4,610.00             $402.08
+                 CommBank App #70307 - Alex and Jane
+02 Jun 2026      KFC Cameron Park Cameron Park AU AUS                                           -$22.90             $379.18
+                 Card xx0000
+                 Value Date: 31/05/2026
+
+
+
+
+Created 09/07/26 06:26am (Sydney/Melbourne time)
+While this letter is accurate at the time it’s produced,
+we’re not responsible for any reliance on this information.                                              Transaction Summary v1.0.5
+                                                                              Account Number     062111 99999999
+                                                                              Page                       4 of 6
+
+
+
+
+Date             Transaction details                                                           Amount              Balance
+02 Jun 2026      CHARLESTOWN SQUARE RAS CHARLESTOWN AUS                                         -$48.98             $330.20
+                 Card xx0000
+                 Value Date: 29/05/2026
+03 Jun 2026      Fast Transfer From Test User                                             $2,100.00            $2,430.20
+                 Money
+03 Jun 2026      Direct Debit 000517 AMERICAN EXPRESS                                       -$2,073.31              $356.89
+                 376000000000001
+08 Jun 2026      Transfer to other Bank NetBank                                                -$215.00             $141.89
+                 Alex Rent
+08 Jun 2026      Fast Transfer From Test User                                                $500.00             $641.89
+                 Money
+09 Jun 2026      CITY OF NEWCASTLE - PA NEWCASTLE AUS                                             -$2.85            $639.04
+                 Card xx0000
+                 Value Date: 05/06/2026
+09 Jun 2026      Ultra Edgeworth Edgeworth NS AUS                                               -$70.82             $568.22
+                 Card xx0000
+                 Value Date: 04/06/2026
+11 Jun 2026      KFC CAMERON PARK CAMERON PARK AUS                                              -$27.90             $540.32
+                 Card xx0000
+                 Value Date: 08/06/2026
+12 Jun 2026      CHARITY ORG MAYFIELD AU                                             -$10.00             $530.32
+12 Jun 2026      Salary 20150 NET PAY CL                                                     $5,561.39            $6,091.71
+                 26339
+12 Jun 2026      Direct Debit 000488 NIB                                                        -$37.96           $6,053.75
+                 xxxxxxxx
+12 Jun 2026      Transfer To Investment Acc                                                -$5,543.80              $509.95
+                 CommBank App pay
+13 Jun 2026      Fast Transfer From Test User                                             $1,000.00            $1,509.95
+                 Money
+14 Jun 2026      Fast Transfer From JANE DOE                                              $300.00           $1,809.95
+                 Sam gift
+14 Jun 2026      Transfer To Jane                                                            -$167.50           $1,642.45
+                 CommBank App nim
+15 Jun 2026      Transfer to other Bank NetBank                                                -$215.00           $1,427.45
+                 Alex Rent
+15 Jun 2026      ALDI STORES WALLSEND NSWAU                                                     -$80.90           $1,346.55
+15 Jun 2026      Direct Debit 527170 Vanguard99999999                                       -$1,000.00              $346.55
+                 yyyyyyy
+16 Jun 2026      KFC Cameron Park Cameron Park AU AUS                                             -$9.95            $336.60
+                 Card xx0000
+                 Value Date: 12/06/2026
+17 Jun 2026      Fast Transfer From Test User                                             $1,300.00            $1,636.60
+                 Money
+
+
+Created 09/07/26 06:26am (Sydney/Melbourne time)
+While this letter is accurate at the time it’s produced,
+we’re not responsible for any reliance on this information.                                              Transaction Summary v1.0.5
+                                                                              Account Number     062111 99999999
+                                                                              Page                       5 of 6
+
+
+
+
+Date             Transaction details                                                           Amount               Balance
+17 Jun 2026      Direct Debit 000517 AMERICAN EXPRESS                                        -$1,299.49             $337.11
+                 376000000000001
+19 Jun 2026      CHARITY ORG MAYFIELD AU                                             -$10.00             $327.11
+20 Jun 2026      MED*ALDIMOBILE 1300989000 AU AUS                                               -$23.00             $304.11
+                 Card xx0000
+                 Value Date: 18/06/2026
+21 Jun 2026      Fast Transfer From Test User                                                $500.00             $804.11
+                 Money
+22 Jun 2026      Transfer to other Bank NetBank                                                -$215.00             $589.11
+                 Alex Rent
+24 Jun 2026      Fast Transfer From ALICE TEST                                        $86.76             $675.87
+                 to PayID Phone
+                 Gas
+25 Jun 2026      ALDI STORES EDGEWORTH NSWAU                                                    -$18.53             $657.34
+25 Jun 2026      Direct Debit 373578 AGL RETAIL ENERG                                          -$197.53             $459.81
+                 zzzzzzzzzzzz
+26 Jun 2026      Direct Debit 000488 NIB                                                        -$37.96             $421.85
+                 xxxxxxxx
+27 Jun 2026      KFC CAMERON PARK CAMERON PARK AUS                                              -$14.95             $406.90
+                 Card xx0000
+                 Value Date: 24/06/2026
+27 Jun 2026      KFC Cameron Park Cameron Park AU AUS                                             -$9.95            $396.95
+                 Card xx0000
+                 Value Date: 25/06/2026
+27 Jun 2026      Fast Transfer From ALICE TEST                                        $40.00             $436.95
+                 to PayID Phone
+                 Internet
+27 Jun 2026      Transfer To John Smith                                                  -$214.50             $222.45
+                 CommBank App hotel
+27 Jun 2026      Fast Transfer From JANE DOE                                              $107.25             $329.70
+                 Hotel
+28 Jun 2026      Fast Transfer From Test User                                                $500.00             $829.70
+                 Money
+28 Jun 2026      Transfer To Alice Test                                                      -$10.00             $819.70
+                 CommBank App nutella
+28 Jun 2026      Transfer To - ALI TEST                                                        -$80.00             $739.70
+                 PayID Phone from CommBank App
+                 photos
+29 Jun 2026      Transfer to other Bank NetBank                                                -$215.00             $524.70
+                 Alex Rent
+29 Jun 2026      ALDI STORES EDGEWORTH NSWAU                                                    -$64.79             $459.91
+
+
+
+
+
+
+
+Created 09/07/26 06:26am (Sydney/Melbourne time)
+While this letter is accurate at the time it’s produced,
+we’re not responsible for any reliance on this information.                                              Transaction Summary v1.0.5
+                                                                                 Account Number     062111 99999999
+                                                                                 Page                       6 of 6
+
+
+
+
+Date              Transaction details                                                             Amount                Balance
+30 Jun 2026       KFC Warwick Farm 2 Mulgrave AU AUS                                                 -$9.95             $449.96
+                  Card xx0000
+                  Value Date: 28/06/2026
+30 Jun 2026       The Trustee for Benam Liverpool NS AUS                                            -$18.95             $431.01
+                  Card xx0000
+                  Value Date: 27/06/2026
+01 Jul 2026       Fast Transfer From Test User                                                $1,000.00            $1,431.01
+                  Money
+02 Jul 2026       ALDI STORES EDGEWORTH NSWAU                                                       -$20.45           $1,410.56
+02 Jul 2026       Direct Debit 000517 AMERICAN EXPRESS                                          -$1,008.53              $402.03
+                  376000000000001
+04 Jul 2026       GLENDALE FOOD PTY LT GLENDALE NSWAU                                               -$16.55             $385.48
+05 Jul 2026       Fast Transfer From Test User                                                  $500.00              $885.48
+                  Money
+06 Jul 2026       Transfer to other Bank NetBank                                                  -$215.00              $670.48
+                  Alex Rent
+06 Jul 2026       Fast Transfer From Test User                                                  $500.00            $1,170.48
+                  Invest
+06 Jul 2026       Transfer to xx2222 CommBank app                                                 -$500.00              $670.48
+07 Jul 2026       TWOANDTOO HOSPITALITY NEW LAMBTON AUS                                             -$14.07             $656.41
+                  Card xx0000
+                  Value Date: 05/07/2026
+07 Jul 2026       KFC Glendale Glendale AU AUS                                                       -$9.45             $646.96
+                  Card xx0000
+                  Value Date: 04/07/2026
+
+
+Any pending transactions haven’t been included in this list. Proceeds of cheques aren’t available until
+cleared.
+
+If you have questions or need more information, go to commbank.com.au/support.
+
+Kind regards,
+The CommBank Team.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Created 09/07/26 06:26am (Sydney/Melbourne time)
+While this letter is accurate at the time it’s produced,
+we’re not responsible for any reliance on this information.                                                  Transaction Summary v1.0.5

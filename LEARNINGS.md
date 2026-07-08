@@ -1,3 +1,29 @@
+## 2026-07-09 — CommBank Transaction Summary PDF + credit card CSV profiles added
+
+**Tags:** commbank, importer, pdf-parser, csv-parser, profile-detect, prod-fix
+**Status:** Fixed
+
+**Issue:** Letter-format Transaction Summary PDFs and credit card CSVs were silently misparsed (0 rows or crash on header) despite `detect()` selecting a profile — the wrong one. The classic `CommBank PDF` profile targeted classic NetBank statement format only; the credit card CSV upload path bypassed `detect()` entirely (hardcoded profileId).
+
+**Investigation:** Audit against real Downloads files (`TransactionSummary.pdf` with 110 rows, `activity.csv` with 36 rows). Every row missed or crashed. Confirmed root cause: (a) existing profile regex didn't match signed-dollar amounts; (b) CSV path in ImportService called `getProfile(profileId)` directly, never calling `detect()`.
+
+**Root cause:** (1) Existing `CommbankPdfProfile.detect()` matched "commbank" in the letter text and was routing letter-format PDFs to the wrong parser. (2) `ImportService.previewImport/confirmImport` for CSV called `this.profileRegistry.getProfile(profileId)` with the hardcoded 'commbank' from the UI, skipping auto-detection entirely. (3) `CommbankSummaryPdfProfile.ts:8` balance capture group was `(\$[\d,]+\.\d{2})` — no minus — silently dropping overdraft rows. (4) BOM bytes prepended by Excel stripped by `h.replace(/^﻿/, '')` was missing from credit card `detect()`. (5) `commbank-credit-card` and `commbank-summary-pdf` absent from `PROFILE_ACCOUNT_META`, causing credit card imports to be filed under "My Bank" generic transaction account.
+
+**Fix:**
+- `lib/importer/profiles/CommbankSummaryPdfProfile.ts:8` — balance group changed to `(-?\$[\d,]+\.\d{2})` to allow negative balances (overdraft)
+- `lib/importer/profiles/CommbankCreditCardCsvProfile.ts:36` — `.replace(/^﻿/, '')` added to `detect()` header mapping to strip Excel BOM
+- `lib/importer/ImportService.ts:45,99` — CSV path now calls `this.detectProfile(content)` first; falls back to user-selected profileId only if no detect() match
+- `app/imports/page.tsx:49` — added `commbank-credit-card` to `BANK_PROFILES` dropdown for explicit manual selection
+- `app/api/import/route.ts:11-12` — added `commbank-credit-card` (accountType: credit) and `commbank-summary-pdf` (accountType: transaction) to `PROFILE_ACCOUNT_META`
+- `lib/importer/profiles/CommbankPdfProfile.ts` — `detect()` already excluded "Transaction Summary" (prior fix)
+- `lib/importer/profiles/ProfileRegistry.ts` — both new profiles already registered in correct order
+
+**Verify:** `npx vitest run tests/importer/` — 58 tests pass; `npx vitest run` — 87/87 pass. `grep -iE "rumman|talha" tests/fixtures/` — 0 lines (PII scrubbed).
+
+**If it recurs:** Grep raw extracted PDF text for `Transaction Summary` header to confirm `detect()` dispatches to `CommbankSummaryPdfProfile`. For CSV, check if `ImportService.detectProfile()` is being called (log which profile was auto-detected). If credit card CSV still routes wrong, verify the header row does not have unexpected columns or column order.
+
+---
+
 ## 2026-07-09 — CommBank PDF importer regex missed "Salary NET PAY" lines
 
 **Tags:** commbank, importer, pdf-parser, salary, regex

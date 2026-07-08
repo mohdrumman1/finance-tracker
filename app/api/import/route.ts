@@ -8,6 +8,8 @@ const importService = new ImportService()
 const PROFILE_ACCOUNT_META: Record<string, { name: string; institution: string; accountType: string }> = {
   commbank: { name: 'Commonwealth Bank', institution: 'Commonwealth Bank', accountType: 'transaction' },
   'commbank-pdf': { name: 'Commonwealth Bank', institution: 'Commonwealth Bank', accountType: 'transaction' },
+  'commbank-summary-pdf': { name: 'Commonwealth Bank', institution: 'Commonwealth Bank', accountType: 'transaction' },
+  'commbank-credit-card': { name: 'CommBank Credit Card', institution: 'Commonwealth Bank', accountType: 'credit' },
   amex: { name: 'American Express', institution: 'American Express', accountType: 'credit' },
   'ing-pdf': { name: 'ING', institution: 'ING', accountType: 'transaction' },
   generic: { name: 'My Bank', institution: 'My Bank', accountType: 'transaction' },

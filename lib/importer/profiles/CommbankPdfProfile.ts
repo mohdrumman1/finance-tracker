@@ -46,7 +46,13 @@ export const CommbankPdfProfile: PdfBankProfile = {
   transactionLineRegex: /^$/, // not used - extractRows handles all parsing
 
   detect(text: string): boolean {
-    return /commonwealth\s+bank|netbank|commbank/i.test(text)
+    // Match classic CommBank PDF statements (NetBank / Commonwealth Bank).
+    // Exclude the Transaction Summary letter format, which has "Transaction Summary"
+    // in every page footer and is handled exclusively by CommbankSummaryPdfProfile.
+    return (
+      /commonwealth\s+bank|netbank|commbank/i.test(text) &&
+      !/Transaction\s+Summary/i.test(text)
+    )
   },
 
   mapMatch(): ParsedRow {

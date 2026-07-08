@@ -46,6 +46,7 @@ interface FileEntry {
 
 const BANK_PROFILES = [
   { id: 'commbank', label: 'Commonwealth Bank (CBA) - CSV' },
+  { id: 'commbank-credit-card', label: 'Commonwealth Bank (CBA) - Credit Card CSV' },
   { id: 'commbank-pdf', label: 'Commonwealth Bank (CBA) - PDF' },
   { id: 'amex', label: 'American Express - CSV' },
   { id: 'ing-pdf', label: 'ING - PDF' },

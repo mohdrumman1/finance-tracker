@@ -42,7 +42,10 @@ export class ImportService {
       const pdfProfile = profile as import('./profiles/ProfileRegistry').PdfBankProfile
       rows = pdfProfile.extractRows(pdfResult.text)
     } else {
-      profile = this.profileRegistry.getProfile(profileId)
+      // Auto-detect CSV profile from content (e.g. credit card 6-column header).
+      // Fall back to user-selected profileId when no detect() match is found.
+      const detected = this.detectProfile(content as string)
+      profile = detected ?? this.profileRegistry.getProfile(profileId)
       rows = this.csvParser.parse(content as string, profile.hasHeader !== false)
     }
 
@@ -97,7 +100,10 @@ export class ImportService {
       const pdfProfile = profile as import('./profiles/ProfileRegistry').PdfBankProfile
       rows = pdfProfile.extractRows(pdfResult.text)
     } else {
-      profile = this.profileRegistry.getProfile(profileId)
+      // Auto-detect CSV profile from content (e.g. credit card 6-column header).
+      // Fall back to user-selected profileId when no detect() match is found.
+      const detected = this.detectProfile(content as string)
+      profile = detected ?? this.profileRegistry.getProfile(profileId)
       rows = this.csvParser.parse(content as string, profile.hasHeader !== false)
     }
 
