@@ -14,10 +14,18 @@ const DATE_START_RE = /^\d{1,2}\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov
 // Two properly comma-formatted amounts at end of line, then CR|DR.
 // Using [\d]{1,3}(?:,\d{3})* requires correct thousands-comma placement,
 // which distinguishes real amounts from run-together reference numbers.
-// \s? between groups handles both concatenated ("55.001,100.00DR") and
-// space-separated ("55.00 1,100.00DR") output from different pdf-parse renderers.
+// \s* between groups handles both concatenated ("55.001,100.00DR") and
+// space-separated ("55.00 1,100.00DR") output from different pdf-parse renderers,
+// including cases with multiple spaces (e.g. column-aligned PDF text extraction).
 const AMOUNTS_END_RE =
-  /([\d]{1,3}(?:,\d{3})*\.\d{2})\s?([\d]{1,3}(?:,\d{3})*\.\d{2})\s?(CR|DR)$/i
+  /([\d]{1,3}(?:,\d{3})*\.\d{2})\s*([\d]{1,3}(?:,\d{3})*\.\d{2})\s*(CR|DR)$/i
+
+// Alternate CommBank format used by salary/payroll credit lines:
+//   txAmount CR|DR balance   (marker appears between the amounts, not at end)
+// e.g. "Salary 20150 NET PAY CL 26339 5,561.39 CR 5,815.66"
+// Groups: [1]=txAmount  [2]=CR|DR  [3]=balance
+const AMOUNTS_CR_MID_RE =
+  /([\d]{1,3}(?:,\d{3})*\.\d{2})\s*(CR|DR)\s*([\d]{1,3}(?:,\d{3})*\.\d{2})$/i
 
 // Single amount (for opening balance line which has no preceding debit/credit amount)
 const SINGLE_AMOUNT_END_RE = /([\d]{1,3}(?:,\d{3})*\.\d{2})\s?(CR|DR)?$/i
@@ -94,20 +102,39 @@ export const CommbankPdfProfile: PdfBankProfile = {
 
       // Find the last line in the block that ends with two amounts + CR|DR.
       // Scanning from the bottom skips trailing junk lines (page-break artifacts).
-      let amountsMatch: RegExpMatchArray | null = null
+      // Two formats are tried:
+      //   (a) AMOUNTS_END_RE:    txAmount balance CR|DR   — standard debit/expense format
+      //   (b) AMOUNTS_CR_MID_RE: txAmount CR|DR balance   — salary/payroll credit format
+      //       e.g. "Salary 20150 NET PAY CL 26339 5,561.39 CR 5,815.66"
+      // Normalised outputs: parsedTxAmt, parsedBalance, parsedCRDR, parsedMatchFull
       let amountsLineIdx = -1
+      let parsedTxAmt = ''
+      let parsedBalance = ''
+      let parsedCRDR = ''
+      let parsedMatchFull = ''
       for (let i = block.length - 1; i >= 0; i--) {
-        amountsMatch = block[i].match(AMOUNTS_END_RE)
-        if (amountsMatch) { amountsLineIdx = i; break }
+        const m1 = block[i].match(AMOUNTS_END_RE)
+        if (m1) {
+          amountsLineIdx = i
+          parsedTxAmt = m1[1]; parsedBalance = m1[2]; parsedCRDR = m1[3]; parsedMatchFull = m1[0]
+          break
+        }
+        const m2 = block[i].match(AMOUNTS_CR_MID_RE)
+        if (m2) {
+          amountsLineIdx = i
+          // Remap groups: txAmt=m2[1], CR|DR=m2[2], balance=m2[3]
+          parsedTxAmt = m2[1]; parsedBalance = m2[3]; parsedCRDR = m2[2]; parsedMatchFull = m2[0]
+          break
+        }
       }
-      if (!amountsMatch || amountsLineIdx < 0) continue
+      if (amountsLineIdx < 0) continue
 
       // Track year rollover (month number decreasing means we crossed into a new year)
       const monthNum = MONTHS[dateMatch[2].toLowerCase()] ?? 1
       if (prevMonth > 0 && monthNum < prevMonth) currentYear++
       prevMonth = monthNum
 
-      const balance = parseFloat(amountsMatch[2].replace(/,/g, ''))
+      const balance = parseFloat(parsedBalance.replace(/,/g, ''))
 
       // Compute the transaction amount from the balance change.
       // This is more reliable than the regex-extracted first capture group, because
@@ -116,7 +143,7 @@ export const CommbankPdfProfile: PdfBankProfile = {
       const txAmount =
         prevBalance !== null
           ? Math.round(Math.abs(balance - prevBalance) * 100) / 100
-          : parseFloat(amountsMatch[1].replace(/,/g, ''))
+          : parseFloat(parsedTxAmt.replace(/,/g, ''))
 
       let debit = '0'
       let credit = '0'
@@ -125,7 +152,7 @@ export const CommbankPdfProfile: PdfBankProfile = {
       // CommBank CREDIT CARD statements, where spending INCREASES the running balance
       // (you owe more), causing every purchase to appear as income. CR/DR is always
       // present in the regex capture and is authoritative regardless of account type.
-      const drCr = amountsMatch[3].toUpperCase()
+      const drCr = parsedCRDR.toUpperCase()
       if (drCr === 'CR') {
         credit = txAmount.toFixed(2)
       } else {
@@ -145,7 +172,7 @@ export const CommbankPdfProfile: PdfBankProfile = {
       //   • the prefix of the amounts line before the matched amounts
       const datePrefix = dateMatch[0]
       const amountsLine = block[amountsLineIdx]
-      const amountsSuffix = amountsMatch[0]
+      const amountsSuffix = parsedMatchFull
       const amountsLinePrefix = amountsLine.slice(0, amountsLine.length - amountsSuffix.length).trim()
 
       const descParts: string[] = [firstLine.slice(datePrefix.length).trim()]

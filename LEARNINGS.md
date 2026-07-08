@@ -1,3 +1,53 @@
+## 2026-07-09 — CommBank PDF importer regex missed "Salary NET PAY" lines
+
+**Tags:** commbank, importer, pdf-parser, salary, regex
+**Status:** Fixed
+
+**Issue:** Salary lines silently skipped from CommBank May and June 2026 PDF imports:
+- 14 May 2026 — `Salary 20150 NET PAY CL 26339` — +$5,561.39
+- 12 Jun 2026 — `Salary 20150 NET PAY CL 26339` — +$5,561.39
+These rows were never imported; 0 matches in DuplicateDetector before the manual insert (see cross-ref below).
+
+**Investigation:**
+1. Identified that `extractRows()` in `lib/importer/profiles/CommbankPdfProfile.ts` gates each transaction block behind `if (amountsLineIdx < 0) continue`. If neither regex matches, the entire block is silently dropped.
+2. Ran the two existing regexes against all plausible salary line formats in Node:
+   - `AMOUNTS_END_RE` (`txAmount balance CR|DR` — CR/DR at end): matches standard merchant debit lines (e.g. `55.00 1,100.00 DR`). Also matches `5,561.39 5,815.66 CR` (CR at end).
+   - The format `5,561.39 CR 5,815.66` (CR **between** amounts) → **NO MATCH** on `AMOUNTS_END_RE`.
+3. CommBank salary/payroll lines in PDF extraction follow the `txAmount CR balance` column order (credit marker comes immediately after the transaction amount, before the running balance), whereas debit/expense lines place `DR` after the balance. No alternate regex existed for the credit-first order.
+4. Also identified that `\s?` (0-or-1 whitespace) in `AMOUNTS_END_RE` would fail with column-aligned double-space output; changed to `\s*`.
+
+**Root cause:** `lib/importer/profiles/CommbankPdfProfile.ts` — `AMOUNTS_END_RE` (line 21 before fix, line 21 after fix) only matched `txAmount balance CR|DR`. CommBank salary/payroll credit lines emit `txAmount CR|DR balance` (marker between amounts, not at end). No fallback regex existed for this layout. Blocks that didn't match were silently skipped at the `if (amountsLineIdx < 0) continue` guard (line ~103).
+
+**Fix:** `lib/importer/profiles/CommbankPdfProfile.ts`
+
+```diff
+-const AMOUNTS_END_RE =
+-  /([\d]{1,3}(?:,\d{3})*\.\d{2})\s?([\d]{1,3}(?:,\d{3})*\.\d{2})\s?(CR|DR)$/i
++const AMOUNTS_END_RE =
++  /([\d]{1,3}(?:,\d{3})*\.\d{2})\s*([\d]{1,3}(?:,\d{3})*\.\d{2})\s*(CR|DR)$/i
++
++// Salary/payroll credit format: txAmount CR|DR balance (marker between amounts)
++const AMOUNTS_CR_MID_RE =
++  /([\d]{1,3}(?:,\d{3})*\.\d{2})\s*(CR|DR)\s*([\d]{1,3}(?:,\d{3})*\.\d{2})$/i
+```
+
+The block-scan loop now tries `AMOUNTS_END_RE` first, then falls back to `AMOUNTS_CR_MID_RE` (groups remapped so callers always receive normalised `parsedTxAmt / parsedBalance / parsedCRDR / parsedMatchFull`).
+
+**Verify:**
+```bash
+npx vitest run tests/importer/CommbankPdfProfile.test.ts
+# Expected: 9 passed (9)
+
+npx vitest run
+# Expected: 56 passed (56)
+```
+
+**If it recurs:** First `grep -i salary` on the raw PDF-extracted text (add a `console.log(text)` in `extractRows` or run `pdf-parse` manually on the file). Check whether the salary line ends with a number (balance) — if so, it's the `txAmount CR balance` format and `AMOUNTS_CR_MID_RE` should catch it. If it ends with `CR`/`DR`, `AMOUNTS_END_RE` catches it. If neither matches, a new format variant is present.
+
+**Cross-reference:** The two missing salary rows were manually inserted — see LEARNINGS.md entry immediately below: "Missing May/June 2026 salary deposits inserted manually" (2026-07-09). If those PDFs are re-imported after this fix, `DuplicateDetector` will catch them by `(date, amount)` key and skip them safely.
+
+---
+
 ## 2026-07-09 — Missing May/June 2026 salary deposits inserted manually
 
 **Tags:** commbank, importer, salary, missing-transactions, prod-db-write
