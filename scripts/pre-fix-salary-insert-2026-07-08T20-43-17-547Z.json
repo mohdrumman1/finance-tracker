@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-07-08T20:43:21.434Z",
+  "userId": "cmoahqc4l000004jrfmslywbm",
+  "userEmail": "mohdrumman1@gmail.com",
+  "chosenAccount": {
+    "id": "cmoalo3y4000004i8i3ktez5x",
+    "name": "Commonwealth Bank"
+  },
+  "categoryId": "cmocpb8w0000m04joxd0rql6l",
+  "categoryName": "Income",
+  "duplicateCheck": {
+    "may14": {
+      "found": 0,
+      "rows": []
+    },
+    "jun12": {
+      "found": 0,
+      "rows": []
+    }
+  },
+  "beforeTotals": {
+    "may": {
+      "income": 298.9,
+      "expense": 4733.079999999999,
+      "count": 96
+    },
+    "jun": {
+      "income": 0,
+      "expense": 3195.6499999999996,
+      "count": 68
+    }
+  }
+}

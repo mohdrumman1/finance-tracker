@@ -1,3 +1,39 @@
+## 2026-07-09 — Missing May/June 2026 salary deposits inserted manually
+
+**Tags:** commbank, importer, salary, missing-transactions, prod-db-write
+**Status:** Fixed
+
+**Issue:** PDF/CSV reimport of CommBank May-June 2026 statements did not ingest the two salary deposit transactions; dashboard showed $0 income for June and only $298.90 (non-salary) for May.
+- 14 May 2026 — Salary 20150 NET PAY CL 26339 — +$5,561.39
+- 12 Jun 2026 — Salary 20150 NET PAY CL 26339 — +$5,561.39
+
+**Investigation:**
+- Accounts checked: all 5 accounts for user `cmoahqc4l000004jrfmslywbm`. Two CommBank accounts exist: "Everyday Account" (`cmoakpcvy000004l2sncoj66u`, institution=Commbank) and "Commonwealth Bank" (`cmoalo3y4000004i8i3ktez5x`, institution=Commonwealth Bank).
+- Chose `cmoalo3y4000004i8i3ktez5x` ("Commonwealth Bank") because all previous CommBank repair scripts (reclassify-may-june.ts, fix-accounts-and-income.ts) target this account — it holds all the May/June imported transactions.
+- Duplicate check for both dates (±1 day UTC window, $5,560–$5,562 range): 0 matches — neither row existed in DB before this fix.
+- Category found: "Income" (`cmocpb8w0000m04joxd0rql6l`).
+
+**Root cause:** Unable to determine definitively without more digging. The importer skipped these rows — possibilities: (a) the salary rows appeared on a page the PDF parser failed to parse, (b) the CR/DR regex did not match the specific salary line format "Salary 20150 NET PAY CL 26339", or (c) duplicate detection (by description+amount+date) had a false positive. The importer root cause remains open.
+
+**Fix:** Inserted 2 rows with IDs `cmrcjow6f00003wuzj7g8h8y1` (May 14), `cmrcjowfl00013wuzavgqd1zw` (Jun 12) via `scripts/insert-may-june-salary.ts`. Both set `sourceType='manual'`, `reviewStatus='reviewed'`, `direction='income'`, `categoryId=cmocpb8w0000m04joxd0rql6l` (Income).
+
+Before/after:
+- May: income $298.90 → $5,860.29 (delta +$5,561.39); expense unchanged $4,733.08
+- Jun: income $0.00 → $5,561.39 (delta +$5,561.39); expense unchanged $3,195.65
+
+**Verify:**
+```
+prisma.transaction.findMany({ where: { id: { in: ['cmrcjow6f00003wuzj7g8h8y1','cmrcjowfl00013wuzavgqd1zw'] } }, select: { id:true, transactionDate:true, amount:true, direction:true, reviewStatus:true } })
+```
+
+**If it recurs:** Before assuming salary is missing, run:
+```sql
+SELECT * FROM Transaction WHERE descriptionRaw LIKE '%Salary%' AND accountId = 'cmoalo3y4000004i8i3ktez5x';
+```
+Then check the import batch to see whether the file contained the rows and what the parser returned.
+
+---
+
 ## 2026-07-08 — 28 CommBank income rows were retail purchases mis-labeled by pre-CR/DR importer; script skipped them due to reviewStatus=reviewed guard
 
 **Tags:** commbank, income, expense, reclassify, reviewStatus, reviewed, mis-label, importer, credit-card
